@@ -14,12 +14,16 @@ Pleos Connect 차량용 앱 공모전 출품작. 차가 드라이브를 자동�
 4. ▶ Run → 화면에 "✅ 연결 성공"이 뜨면 정상
 
 ## Pleos SDK
-| SDK | 버전 | 비고 |
-|---|---|---|
-| Vehicle | 2.3.2 | `app/build.gradle.kts` (2.3.1은 저장소에 없음) |
-| NaviHelper | 3.0.5 | 추가 예정 |
-| SpeechToText / TextToSpeech | 3.3.1 | Playground에서 "준비 중" |
-| FusedLocation | 1.1.3 | Playground에서 "준비 중" |
+| SDK | 버전 | Playground 상태 | 에뮬레이터 |
+|---|---|---|---|
+| Vehicle | 2.3.2 | 사용 가능 | ✅ 동작 (2.3.1은 저장소에 없음) |
+| FusedLocation | 1.1.3 | 준비 중 | ✅ 위치 수신 |
+| SpeechToText | 3.3.1 | 준비 중 | ✅ 초기화 (ON_DEVICE) |
+| TextToSpeech | 3.3.1 | 준비 중 | ✅ 초기화 (ON_DEVICE) |
+| NaviHelper | 3.0.5 | 사용 가능 | 추가 예정 |
+
+"준비 중" SDK는 에뮬레이터에서 동작하지만 실차·심사 허용 여부는 미확인.
+에뮬레이터 위치 변경: 에뮬레이터 ⋯ (Extended controls) → Location (또는 `adb emu geo fix <경도> <위도>`).
 
 Maven 저장소는 `settings.gradle.kts`에 등록되어 있음. 퍼미션은 `app/src/main/AndroidManifest.xml`.
 
