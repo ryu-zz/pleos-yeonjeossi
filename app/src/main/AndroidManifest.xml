@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Pleos Vehicle SDK 읽기 권한 (RoadMate에서 쓰는 도메인) -->
+    <uses-permission android:name="pleos.car.permission.CAR_DOORS" />   <!-- Door -->
+    <uses-permission android:name="pleos.car.permission.CAR_SEATS" />   <!-- Seat: 탑승 -->
+    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />   <!-- Odometer, DrivingMode -->
+    <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />  <!-- EvBattery -->
+    <uses-permission android:name="pleos.car.permission.CAR_WINDOWS" /> <!-- Wiper, Window -->
+
+    <!-- 차량(Automotive) 앱 선언 -->
+    <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@style/Theme.Test">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
