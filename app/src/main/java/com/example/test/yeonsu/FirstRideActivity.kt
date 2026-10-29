@@ -8,6 +8,8 @@ import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageView
+import com.example.test.R
 import android.util.Log
 import android.view.Gravity
 import android.view.View
@@ -26,7 +28,7 @@ import ai.pleos.playground.tts.constant.Mode as TtsMode
 import ai.pleos.playground.tts.listener.OnInitializeListener as TtsInit
 
 /**
- * 너의 연수 아저씨 · 첫 탑승 세팅 미니 데모
+ * 연저씨 (너의 연수 아저씨) · 첫 탑승 세팅 미니 데모
  *
  * 차가 확인하는 단계(✔): 안전벨트, 브레이크
  * 사용자가 "됐어요"로 넘기는 단계(🗣): 시트, 등받이, 룸미러, 사이드미러
@@ -41,7 +43,7 @@ class FirstRideActivity : AppCompatActivity() {
     private data class Step(val title: String, val say: String, val check: Check)
 
     private val steps = listOf(
-        Step("시작", "안녕하세요, 연수 아저씨예요. 출발 전에 하나씩 맞춰 볼게요.", Check.INFO),
+        Step("시작", "안녕하세요, 연저씨예요. 출발 전에 하나씩 맞춰 볼게요.", Check.INFO),
         Step("안전벨트", "안전벨트부터 매요. 딸깍 소리 날 때까지요.", Check.VEHICLE),
         Step("시트 앞뒤", "브레이크를 끝까지 밟았을 때 무릎이 살짝 굽혀지게 시트를 맞춰요.", Check.SELF),
         Step("등받이", "등받이는 핸들 위에 손목을 올렸을 때 닿는 정도예요.", Check.SELF),
@@ -212,7 +214,7 @@ class FirstRideActivity : AppCompatActivity() {
         setProgress(1f)
         stepLabel.text = "COMPLETE"
         stepTitle.text = "준비 끝"
-        say("앞으로는 아저씨가 알아서 확인할게요.")
+        say("앞으로는 연저씨가 알아서 확인할게요.")
         chip("첫 탑승 세팅 완료 · 다음부터는 자동 점검만 해요", false)
         button("다음 탑승 해보기 (자동 점검)") { startAutoCheck() }
     }
@@ -304,12 +306,19 @@ class FirstRideActivity : AppCompatActivity() {
         }
         // 브랜드 줄
         val brand = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val badge = FrameLayout(this).apply {
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Color.WHITE, SILVER_LIGHT)).apply {
+                shape = GradientDrawable.OVAL; setStroke(dp(1.5f), SILVER)
+            }
+        }
+        badge.addView(ImageView(this).apply { setImageResource(R.drawable.ic_mustache); scaleType = ImageView.ScaleType.FIT_CENTER },
+            FrameLayout.LayoutParams(dp(42f), dp(14f), Gravity.CENTER))
+        brand.addView(badge, LinearLayout.LayoutParams(dp(60f), dp(60f)))
         brand.addView(TextView(this).apply {
-            text = "연"; textSize = 22f; setTypeface(null, Typeface.BOLD); setTextColor(INK); gravity = Gravity.CENTER
-            background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Color.WHITE, SILVER)).apply { shape = GradientDrawable.OVAL; setStroke(dp(1f), SILVER) }
-        }, LinearLayout.LayoutParams(dp(52f), dp(52f)))
+            text = "연저씨"; textSize = 24f; setTypeface(null, Typeface.BOLD); setTextColor(INK); letterSpacing = 0.02f; setPadding(dp(16f), 0, 0, 0)
+        })
         brand.addView(TextView(this).apply {
-            text = "너의 연수 아저씨"; textSize = 22f; setTextColor(GRAY); letterSpacing = 0.02f; setPadding(dp(12f), 0, 0, 0)
+            text = "너의 연수 아저씨"; textSize = 19f; setTextColor(SILVER); setPadding(dp(12f), 0, 0, 0)
         })
         card.addView(brand)
 
@@ -319,12 +328,12 @@ class FirstRideActivity : AppCompatActivity() {
         progressTrack.addView(progress, FrameLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT))
         card.addView(progressTrack, LinearLayout.LayoutParams(-1, dp(4f)).apply { topMargin = dp(36f) })
 
-        stepLabel = TextView(this).apply { textSize = 18f; setTextColor(GRAY); letterSpacing = 0.18f; setTypeface(null, Typeface.BOLD) }
+        stepLabel = TextView(this).apply { textSize = 19f; setTextColor(GRAY); letterSpacing = 0.18f; setTypeface(null, Typeface.BOLD) }
         card.addView(stepLabel, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(44f) })
-        stepTitle = TextView(this).apply { textSize = 76f; setTextColor(INK); setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL)); letterSpacing = -0.02f }
+        stepTitle = TextView(this).apply { textSize = 77f; setTextColor(INK); setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL)); letterSpacing = -0.02f }
         card.addView(stepTitle, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(6f) })
 
-        bubble = TextView(this).apply { textSize = 34f; setTextColor(GRAY); setLineSpacing(0f, 1.3f) }
+        bubble = TextView(this).apply { textSize = 35f; setTextColor(GRAY); setLineSpacing(0f, 1.3f) }
         card.addView(bubble, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(20f) })
 
         // 상태 칩
@@ -336,7 +345,7 @@ class FirstRideActivity : AppCompatActivity() {
         }
         statusDot = View(this).apply { background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(INK) } }
         statusChip.addView(statusDot, LinearLayout.LayoutParams(dp(12f), dp(12f)))
-        hint = TextView(this).apply { textSize = 22f; setTextColor(GRAY); setPadding(dp(14f), 0, 0, 0) }
+        hint = TextView(this).apply { textSize = 23f; setTextColor(GRAY); setPadding(dp(14f), 0, 0, 0) }
         statusChip.addView(hint)
         card.addView(statusChip, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(36f) })
 
@@ -344,14 +353,14 @@ class FirstRideActivity : AppCompatActivity() {
         card.addView(View(this), LinearLayout.LayoutParams(-1, 0, 1f))
 
         mainBtn = Button(this).apply {
-            textSize = 28f; setTextColor(Color.WHITE); isAllCaps = false; letterSpacing = 0.02f
+            textSize = 29f; setTextColor(Color.WHITE); isAllCaps = false; letterSpacing = 0.02f
             stateListAnimator = null
             background = round(INK, dp(24f).toFloat())
         }
         card.addView(mainBtn, LinearLayout.LayoutParams(-1, dp(104f)))
         simBtn = TextView(this).apply {
             text = "차량 신호 시뮬레이션 (테스트용)"
-            textSize = 17f; setTextColor(SILVER); gravity = Gravity.CENTER; setPadding(0, dp(18f), 0, 0)
+            textSize = 18f; setTextColor(SILVER); gravity = Gravity.CENTER; setPadding(0, dp(18f), 0, 0)
             visibility = View.GONE
         }
         card.addView(simBtn)
@@ -362,15 +371,15 @@ class FirstRideActivity : AppCompatActivity() {
             orientation = LinearLayout.VERTICAL; setPadding(dp(40f), dp(44f), dp(40f), dp(44f))
             background = round(SURFACE, dp(28f).toFloat(), dp(1f), LINE)
         }
-        listBox.addView(TextView(this).apply { text = "첫 탑승 세팅"; textSize = 18f; setTextColor(GRAY); letterSpacing = 0.12f; setTypeface(null, Typeface.BOLD) })
+        listBox.addView(TextView(this).apply { text = "첫 탑승 세팅"; textSize = 19f; setTextColor(GRAY); letterSpacing = 0.12f; setTypeface(null, Typeface.BOLD) })
         steps.forEachIndexed { k, _ ->
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0, dp(18f), 0, dp(18f)) }
             row.addView(TextView(this).apply {
-                textSize = 18f; gravity = Gravity.CENTER; setTypeface(null, Typeface.BOLD)
+                textSize = 19f; gravity = Gravity.CENTER; setTypeface(null, Typeface.BOLD)
                 background = GradientDrawable().apply { shape = GradientDrawable.OVAL }
             }, LinearLayout.LayoutParams(dp(44f), dp(44f)))
-            row.addView(TextView(this).apply { textSize = 26f; setPadding(dp(20f), 0, 0, 0) }, LinearLayout.LayoutParams(0, -2, 1f))
-            row.addView(TextView(this).apply { textSize = 17f })
+            row.addView(TextView(this).apply { textSize = 27f; setPadding(dp(20f), 0, 0, 0) }, LinearLayout.LayoutParams(0, -2, 1f))
+            row.addView(TextView(this).apply { textSize = 18f })
             rows += row
             listBox.addView(row, LinearLayout.LayoutParams(-1, -2).apply { if (k == 0) topMargin = dp(22f) })
         }

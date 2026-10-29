@@ -32,12 +32,14 @@
             </intent-filter>
         </activity>
 
-        <!-- 너의 연수 아저씨 · 첫 탑승 세팅 데모 (앱 목록에 별도 아이콘으로 표시) -->
+        <!-- 연저씨 (너의 연수 아저씨) · 첫 탑승 세팅 데모 (앱 목록에 별도 아이콘으로 표시) -->
         <activity
             android:name=".yeonsu.FirstRideActivity"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-            android:label="연수 아저씨">
+            android:icon="@mipmap/ic_yeonsu"
+            android:roundIcon="@mipmap/ic_yeonsu_round"
+            android:label="연저씨">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
