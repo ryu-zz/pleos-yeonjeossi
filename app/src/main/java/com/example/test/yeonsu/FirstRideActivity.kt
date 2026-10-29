@@ -4,7 +4,10 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.util.Log
 import android.view.Gravity
 import android.view.View
@@ -52,12 +55,18 @@ class FirstRideActivity : AppCompatActivity() {
     private var tts: TextToSpeech? = null
     private var ttsReady = false
 
-    private lateinit var bubble: TextView
-    private lateinit var hint: TextView
+    private lateinit var bubble: TextView      // 아저씨 말 (본문)
+    private lateinit var hint: TextView        // 상태 칩 텍스트
+    private lateinit var statusChip: LinearLayout
+    private lateinit var statusDot: View
+    private lateinit var stepLabel: TextView   // STEP 2 / 8
+    private lateinit var stepTitle: TextView   // 큰 제목
+    private lateinit var progress: View
+    private lateinit var progressTrack: FrameLayout
     private lateinit var listBox: LinearLayout
     private lateinit var mainBtn: Button
     private lateinit var simBtn: TextView
-    private val rows = mutableListOf<TextView>()
+    private val rows = mutableListOf<LinearLayout>()
 
     private var index = 0
     private var seatBelt: Boolean? = null
@@ -132,23 +141,16 @@ class FirstRideActivity : AppCompatActivity() {
         index = i
         val s = steps[i]
         say(s.say)
-        rows.forEachIndexed { k, tv ->
-            val st = steps[k]
-            val mark = when {
-                k < i -> "✅"
-                k == i -> "👉"
-                else -> "⬜"
-            }
-            val tag = when (st.check) { Check.VEHICLE -> " · 차가 확인"; Check.SELF -> " · 직접 확인"; else -> "" }
-            tv.text = "$mark  ${st.title}$tag"
-            tv.setTypeface(null, if (k == i) Typeface.BOLD else Typeface.NORMAL)
-            tv.setTextColor(if (k < i) GREEN else if (k == i) NAVY else Color.GRAY)
-        }
+        stepLabel.text = "STEP ${i + 1} / ${steps.size}"
+        stepTitle.text = s.title
+        setProgress((i).toFloat() / (steps.size - 1))
+        rows.forEachIndexed { k, row -> renderRow(row, k, i) }
+        statusChip.visibility = View.GONE
         when (s.check) {
-            Check.INFO -> { hint.text = ""; button("시작할게요") { showStep(i + 1) } }
-            Check.SELF -> { hint.text = "맞췄으면 아래 버튼을 눌러 주세요 (차가 확인할 수 없는 단계)"; button("됐어요") { pass("좋아요!") } }
+            Check.INFO -> { button("시작할게요") { showStep(i + 1) } }
+            Check.SELF -> { chip("직접 확인 · 맞췄으면 아래 버튼을 눌러 주세요", false); button("됐어요") { pass("좋아요.") } }
             Check.SAVE_SEAT -> {
-                hint.text = "시트 위치를 읽는 중…"
+                chip("시트 위치를 읽는 중", true)
                 mainBtn.visibility = View.GONE
                 readSeatPosition {
                     prefs.edit()
@@ -156,13 +158,13 @@ class FirstRideActivity : AppCompatActivity() {
                         .putInt(KEY_HEIGHT, seatHeight ?: Int.MIN_VALUE)
                         .putInt(KEY_BACK, seatBack ?: Int.MIN_VALUE)
                         .apply()
-                    hint.text = "저장한 자리 · 앞뒤 ${fmt(seatForeAft)} / 높이 ${fmt(seatHeight)} / 등받이 ${fmt(seatBack)}"
+                    chip("저장됨 · 앞뒤 ${fmt(seatForeAft)}  높이 ${fmt(seatHeight)}  등받이 ${fmt(seatBack)}", false)
                     button("다음") { showStep(i + 1) }
                 }
             }
             Check.VEHICLE -> {
                 mainBtn.visibility = View.GONE
-                hint.text = vehicleHint(s.title)
+                chip(vehicleHint(s.title), true)
                 simBtn.visibility = View.VISIBLE
                 simBtn.setOnClickListener {
                     Log.d(TAG, "시뮬레이션: ${s.title}")
@@ -176,8 +178,8 @@ class FirstRideActivity : AppCompatActivity() {
     }
 
     private fun vehicleHint(title: String) = when (title) {
-        "안전벨트" -> "Virtual Console › Safety › Telltales에서 안전벨트 경고를 Off로 (현재: ${fmtB(seatBelt, "맴", "안 맴")})"
-        "브레이크" -> "Virtual Console › Motion › Brake Pedal을 올려 보세요 (현재: ${fmtB(brake, "밟음", "안 밟음")})"
+        "안전벨트" -> "차가 확인 중 · 현재 ${fmtB(seatBelt, "체결됨", "미체결")}"
+        "브레이크" -> "차가 확인 중 · 현재 ${fmtB(brake, "밟음", "안 밟음")}"
         else -> ""
     }
 
@@ -186,9 +188,9 @@ class FirstRideActivity : AppCompatActivity() {
         if (index !in steps.indices) return
         val s = steps[index]
         if (s.check != Check.VEHICLE) return
-        hint.text = vehicleHint(s.title)
+        chip(vehicleHint(s.title), true)
         val ok = when (s.title) { "안전벨트" -> seatBelt == true; "브레이크" -> brake == true; else -> false }
-        if (ok) pass(if (s.title == "안전벨트") "딸깍! 통과 🎉" else "꾹! 통과 🎉")
+        if (ok) pass(if (s.title == "안전벨트") "딸깍. 통과입니다." else "좋아요. 통과입니다.")
     }
 
     private var passing = false
@@ -206,9 +208,12 @@ class FirstRideActivity : AppCompatActivity() {
 
     private fun finishFirstRide() {
         prefs.edit().putBoolean(KEY_DONE, true).apply()
-        rows.forEach { it.setTextColor(GREEN) }
-        say("준비 끝! 앞으로는 아저씨가 알아서 확인할게요.")
-        hint.text = "첫 탑승 세팅 완료 · 다음부터는 자동 점검만 해요"
+        rows.forEachIndexed { k, row -> renderRow(row, k, steps.size) }
+        setProgress(1f)
+        stepLabel.text = "COMPLETE"
+        stepTitle.text = "준비 끝"
+        say("앞으로는 아저씨가 알아서 확인할게요.")
+        chip("첫 탑승 세팅 완료 · 다음부터는 자동 점검만 해요", false)
         button("다음 탑승 해보기 (자동 점검)") { startAutoCheck() }
     }
 
@@ -216,12 +221,15 @@ class FirstRideActivity : AppCompatActivity() {
     private var autoMode = false
     private fun startAutoCheck() {
         autoMode = true
-        rows.forEach { it.visibility = View.GONE }
+        listBox.visibility = View.GONE
+        stepLabel.text = "AUTO CHECK"
+        stepTitle.text = "출발 전 점검"
+        setProgress(1f)
         say("다시 왔네요. 조용히 확인해 볼게요.")
         readSeatPosition { renderAutoCheck() }
         button("처음부터 다시 (첫 탑승)") {
             prefs.edit().clear().apply(); autoMode = false
-            rows.forEach { it.visibility = View.VISIBLE }; showStep(0)
+            listBox.visibility = View.VISIBLE; showStep(0)
         }
     }
 
@@ -231,12 +239,12 @@ class FirstRideActivity : AppCompatActivity() {
         if (seatBelt != true) problems += "벨트 안 맸어요."
         if (saved != Int.MIN_VALUE && seatForeAft != null && seatForeAft != saved)
             problems += "자리가 바뀌었네요. 미러도 다시 봐요."
-        hint.text = "벨트 ${fmtB(seatBelt, "✅", "❌")}  ·  시트 앞뒤 저장 ${fmt(saved.takeIf { it != Int.MIN_VALUE })} → 지금 ${fmt(seatForeAft)}"
+        chip("벨트 ${fmtB(seatBelt, "체결", "미체결")}  ·  시트 ${fmt(saved.takeIf { it != Int.MIN_VALUE })} → ${fmt(seatForeAft)}", problems.isNotEmpty())
         val msg = if (problems.isEmpty()) "다 좋아요. 오늘은 어떤 미션을 해볼까요?" else problems.joinToString(" ")
         if (bubble.text != msg) say(msg)
     }
 
-    // ---------------- UI ----------------
+    // ---------------- UI (gray · white · silver) ----------------
     private fun say(text: String) { bubble.text = text; speak(text) }
 
     private fun button(label: String, onClick: () -> Unit) {
@@ -245,49 +253,128 @@ class FirstRideActivity : AppCompatActivity() {
         mainBtn.setOnClickListener { onClick() }
     }
 
+    private fun chip(text: String, live: Boolean) {
+        hint.text = text
+        statusChip.visibility = View.VISIBLE
+        (statusDot.background as GradientDrawable).setColor(if (live) INK else SILVER)
+    }
+
+    private fun setProgress(f: Float) {
+        progressTrack.post {
+            progress.layoutParams = (progress.layoutParams as FrameLayout.LayoutParams).apply {
+                width = (progressTrack.width * f.coerceIn(0f, 1f)).toInt()
+            }
+            progress.requestLayout()
+        }
+    }
+
+    private fun renderRow(row: LinearLayout, k: Int, current: Int) {
+        val circle = row.getChildAt(0) as TextView
+        val label = row.getChildAt(1) as TextView
+        val tag = row.getChildAt(2) as TextView
+        val st = steps[k]
+        val bg = circle.background as GradientDrawable
+        when {
+            k < current -> { bg.setColor(SILVER_LIGHT); bg.setStroke(0, 0); circle.text = "✓"; circle.setTextColor(GRAY); label.setTextColor(GRAY); label.setTypeface(null, Typeface.NORMAL) }
+            k == current -> { bg.setColor(INK); bg.setStroke(0, 0); circle.text = "${k + 1}"; circle.setTextColor(Color.WHITE); label.setTextColor(INK); label.setTypeface(null, Typeface.BOLD) }
+            else -> { bg.setColor(Color.WHITE); bg.setStroke(dp(1.5f), SILVER); circle.text = "${k + 1}"; circle.setTextColor(SILVER); label.setTextColor(SILVER); label.setTypeface(null, Typeface.NORMAL) }
+        }
+        label.text = st.title
+        tag.text = when (st.check) { Check.VEHICLE -> "차량 확인"; Check.SELF -> "직접 확인"; else -> "" }
+        tag.setTextColor(if (k == current) GRAY else SILVER)
+    }
+
+    private fun dp(v: Float) = (v * resources.displayMetrics.density).toInt()
+    private fun round(color: Int, r: Float, stroke: Int = 0, strokeColor: Int = 0) =
+        GradientDrawable().apply { setColor(color); cornerRadius = r; if (stroke > 0) setStroke(stroke, strokeColor) }
+
     private fun buildUi() {
+        window.statusBarColor = BG
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setBackgroundColor(Color.parseColor("#F3F6FB"))
-            setPadding(48, 40, 48, 40)
+            setBackgroundColor(BG)
+            setPadding(dp(40f), dp(32f), dp(40f), dp(32f))
         }
-        // 왼쪽: 아저씨 + 말풍선
-        val left = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
-        left.addView(TextView(this).apply { text = "🧢👓"; textSize = 72f; gravity = Gravity.CENTER })
-        left.addView(TextView(this).apply {
-            text = "너의 연수 아저씨"; textSize = 30f; setTypeface(null, Typeface.BOLD); setTextColor(NAVY); gravity = Gravity.CENTER
+
+        // ---- 왼쪽: 메인 카드 ----
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(56f), dp(44f), dp(56f), dp(44f))
+            background = round(Color.WHITE, dp(28f).toFloat(), dp(1f), LINE)
+        }
+        // 브랜드 줄
+        val brand = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        brand.addView(TextView(this).apply {
+            text = "연"; textSize = 22f; setTypeface(null, Typeface.BOLD); setTextColor(INK); gravity = Gravity.CENTER
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Color.WHITE, SILVER)).apply { shape = GradientDrawable.OVAL; setStroke(dp(1f), SILVER) }
+        }, LinearLayout.LayoutParams(dp(52f), dp(52f)))
+        brand.addView(TextView(this).apply {
+            text = "너의 연수 아저씨"; textSize = 22f; setTextColor(GRAY); letterSpacing = 0.02f; setPadding(dp(12f), 0, 0, 0)
         })
-        bubble = TextView(this).apply {
-            textSize = 34f; setTextColor(Color.parseColor("#1F2A3C")); setPadding(40, 32, 40, 32)
-            background = GradientDrawable().apply { setColor(Color.parseColor("#FFF3C4")); cornerRadius = 36f; setStroke(4, Color.parseColor("#FFC93C")) }
-        }
-        left.addView(bubble, LinearLayout.LayoutParams(-1, -2).apply { topMargin = 24 })
-        hint = TextView(this).apply { textSize = 20f; setTextColor(Color.parseColor("#5B6B86")); setPadding(8, 20, 8, 0) }
-        left.addView(hint)
-        mainBtn = Button(this).apply {
-            textSize = 28f; setTextColor(Color.WHITE); isAllCaps = false
-            background = GradientDrawable().apply { setColor(NAVY); cornerRadius = 40f }
-        }
-        left.addView(mainBtn, LinearLayout.LayoutParams(-1, 140).apply { topMargin = 28 })
-        simBtn = TextView(this).apply {
-            text = "🧪 차량 신호 시뮬레이션 (Virtual Console에 해당 카드가 없을 때만)"
-            textSize = 18f; setTextColor(Color.parseColor("#7A8AA6")); gravity = Gravity.CENTER; setPadding(0, 24, 0, 0)
+        card.addView(brand)
+
+        // 진행 바
+        progressTrack = FrameLayout(this).apply { background = round(LINE, dp(2f).toFloat()) }
+        progress = View(this).apply { background = round(INK, dp(2f).toFloat()) }
+        progressTrack.addView(progress, FrameLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT))
+        card.addView(progressTrack, LinearLayout.LayoutParams(-1, dp(4f)).apply { topMargin = dp(36f) })
+
+        stepLabel = TextView(this).apply { textSize = 18f; setTextColor(GRAY); letterSpacing = 0.18f; setTypeface(null, Typeface.BOLD) }
+        card.addView(stepLabel, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(44f) })
+        stepTitle = TextView(this).apply { textSize = 76f; setTextColor(INK); setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL)); letterSpacing = -0.02f }
+        card.addView(stepTitle, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(6f) })
+
+        bubble = TextView(this).apply { textSize = 34f; setTextColor(GRAY); setLineSpacing(0f, 1.3f) }
+        card.addView(bubble, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(20f) })
+
+        // 상태 칩
+        statusChip = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(22f), dp(14f), dp(26f), dp(14f))
+            background = round(SURFACE, dp(20f).toFloat(), dp(1f), LINE)
             visibility = View.GONE
         }
-        left.addView(simBtn)
-        root.addView(left, LinearLayout.LayoutParams(0, -1, 1.4f))
+        statusDot = View(this).apply { background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(INK) } }
+        statusChip.addView(statusDot, LinearLayout.LayoutParams(dp(12f), dp(12f)))
+        hint = TextView(this).apply { textSize = 22f; setTextColor(GRAY); setPadding(dp(14f), 0, 0, 0) }
+        statusChip.addView(hint)
+        card.addView(statusChip, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(36f) })
 
-        // 오른쪽: 체크리스트
+        // 여백
+        card.addView(View(this), LinearLayout.LayoutParams(-1, 0, 1f))
+
+        mainBtn = Button(this).apply {
+            textSize = 28f; setTextColor(Color.WHITE); isAllCaps = false; letterSpacing = 0.02f
+            stateListAnimator = null
+            background = round(INK, dp(24f).toFloat())
+        }
+        card.addView(mainBtn, LinearLayout.LayoutParams(-1, dp(104f)))
+        simBtn = TextView(this).apply {
+            text = "차량 신호 시뮬레이션 (테스트용)"
+            textSize = 17f; setTextColor(SILVER); gravity = Gravity.CENTER; setPadding(0, dp(18f), 0, 0)
+            visibility = View.GONE
+        }
+        card.addView(simBtn)
+        root.addView(card, LinearLayout.LayoutParams(0, -1, 1.55f))
+
+        // ---- 오른쪽: 단계 목록 ----
         listBox = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL; setPadding(40, 32, 40, 32)
-            background = GradientDrawable().apply { setColor(Color.WHITE); cornerRadius = 32f; setStroke(3, Color.parseColor("#D8E1EE")) }
+            orientation = LinearLayout.VERTICAL; setPadding(dp(40f), dp(44f), dp(40f), dp(44f))
+            background = round(SURFACE, dp(28f).toFloat(), dp(1f), LINE)
         }
-        listBox.addView(TextView(this).apply { text = "첫 탑승 세팅"; textSize = 26f; setTypeface(null, Typeface.BOLD); setTextColor(NAVY) })
-        steps.forEach { _ ->
-            val tv = TextView(this).apply { textSize = 24f; setPadding(0, 18, 0, 18) }
-            rows += tv; listBox.addView(tv)
+        listBox.addView(TextView(this).apply { text = "첫 탑승 세팅"; textSize = 18f; setTextColor(GRAY); letterSpacing = 0.12f; setTypeface(null, Typeface.BOLD) })
+        steps.forEachIndexed { k, _ ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(0, dp(18f), 0, dp(18f)) }
+            row.addView(TextView(this).apply {
+                textSize = 18f; gravity = Gravity.CENTER; setTypeface(null, Typeface.BOLD)
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL }
+            }, LinearLayout.LayoutParams(dp(44f), dp(44f)))
+            row.addView(TextView(this).apply { textSize = 26f; setPadding(dp(20f), 0, 0, 0) }, LinearLayout.LayoutParams(0, -2, 1f))
+            row.addView(TextView(this).apply { textSize = 17f })
+            rows += row
+            listBox.addView(row, LinearLayout.LayoutParams(-1, -2).apply { if (k == 0) topMargin = dp(22f) })
         }
-        root.addView(listBox, LinearLayout.LayoutParams(0, -1, 1f).apply { leftMargin = 40 })
+        root.addView(listBox, LinearLayout.LayoutParams(0, -1, 1f).apply { leftMargin = dp(24f) })
         setContentView(root)
     }
 
@@ -310,7 +397,13 @@ class FirstRideActivity : AppCompatActivity() {
         private const val KEY_FORE = "seat_fore"
         private const val KEY_HEIGHT = "seat_height"
         private const val KEY_BACK = "seat_back"
-        private val NAVY = Color.parseColor("#1F3A5F")
-        private val GREEN = Color.parseColor("#2E9E5B")
+        // 투톤: 그레이(잉크) + 화이트, 실버로 보조
+        private val INK = Color.parseColor("#2C2C2E")          // 진한 그레이
+        private val GRAY = Color.parseColor("#6E6E73")         // 본문 그레이
+        private val SILVER = Color.parseColor("#B8BCC2")       // 실버
+        private val SILVER_LIGHT = Color.parseColor("#E3E5E8") // 옅은 실버
+        private val LINE = Color.parseColor("#E8E9EB")
+        private val SURFACE = Color.parseColor("#F7F7F8")
+        private val BG = Color.parseColor("#EFEFF1")
     }
 }

@@ -36,6 +36,7 @@
         <activity
             android:name=".yeonsu.FirstRideActivity"
             android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:label="연수 아저씨">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
