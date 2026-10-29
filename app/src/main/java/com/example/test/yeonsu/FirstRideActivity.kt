@@ -124,7 +124,12 @@ class FirstRideActivity : AppCompatActivity() {
         try {
             tts = TextToSpeech(applicationContext, TtsMode.ON_DEVICE).also { t ->
                 t.initialize(object : TtsInit {
-                    override fun onSuccess() { ttsReady = true; Log.d(TAG, "TTS ready"); runOnUiThread { speak(bubble.text.toString()) } }
+                    override fun onSuccess() {
+                        // 남자 목소리: eunwoo(가장 낮음) · 대안 sanghyeok. 기본값은 여자 목소리 haeun
+                        try { t.setLocale(java.util.Locale.KOREA); t.setSpeakerType(VOICE) } catch (e: Exception) { Log.e(TAG, "speaker ${e.message}") }
+                        ttsReady = true; Log.d(TAG, "TTS ready, speaker=$VOICE")
+                        runOnUiThread { speak(bubble.text.toString()) }
+                    }
                     override fun onFailure(errorType: TtsError) { Log.e(TAG, "TTS fail $errorType") }
                 })
             }
@@ -402,6 +407,7 @@ class FirstRideActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "Yeonsu"
+        private const val VOICE = "EUNWOO"
         private const val KEY_DONE = "first_ride_done"
         private const val KEY_FORE = "seat_fore"
         private const val KEY_HEIGHT = "seat_height"
