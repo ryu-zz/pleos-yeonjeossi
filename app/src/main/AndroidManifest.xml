@@ -32,9 +32,9 @@
             </intent-filter>
         </activity>
 
-        <!-- 연저씨 (너의 연수 아저씨) · 첫 탑승 세팅 데모 (앱 목록에 별도 아이콘으로 표시) -->
+        <!-- 연저씨 · 앱 시작 화면 (앱 목록의 연저씨 아이콘이 여는 화면) -->
         <activity
-            android:name=".yeonsu.FirstRideActivity"
+            android:name=".yeonsu.SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:icon="@mipmap/ic_yeonsu"
@@ -45,5 +45,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 연저씨 · 첫 탑승 세팅 (시작 화면의 "시작하기"로 진입) -->
+        <activity
+            android:name=".yeonsu.FirstRideActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:label="연저씨" />
     </application>
 </manifest>
