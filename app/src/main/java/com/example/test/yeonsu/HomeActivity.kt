@@ -55,12 +55,12 @@ class HomeActivity : FadeActivity() {
 
         // 헤더: 로고 / 홈·설정·도움말
         val logo = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        logo.addView(ImageView(this).apply { setImageResource(R.drawable.ic_y_car); alpha = 0.85f }, LinearLayout.LayoutParams(dp(36f), dp(36f)))
+        logo.addView(ImageView(this).apply { setImageResource(R.drawable.ic_y_wheel) }, LinearLayout.LayoutParams(dp(36f), dp(36f)))
         logo.addView(tv("연저씨", 30f, Color.parseColor("#14204A"), true).apply { setPadding(dp(12f), 0, 0, 0) })
         root.addView(logo, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START).apply { topMargin = dp(24f); leftMargin = dp(36f) })
 
         val tools = LinearLayout(this)
-        listOf(R.drawable.ic_y_home to "홈", R.drawable.ic_y_settings to "설정", R.drawable.ic_y_help to "도움말").forEach { (ic, name) ->
+        listOf(R.drawable.ic_y_settings to "설정", R.drawable.ic_y_help to "도움말").forEach { (ic, name) ->
             tools.addView(roundButton(ic, 56f) { soon(name) }, LinearLayout.LayoutParams(dp(56f), dp(56f)).apply { leftMargin = dp(12f) })
         }
         root.addView(tools, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END).apply { topMargin = dp(20f); rightMargin = dp(32f) })
