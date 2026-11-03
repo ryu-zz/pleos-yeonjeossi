@@ -22,9 +22,9 @@ class HomeActivity : FadeActivity() {
     private class Item(val title: String, val desc: String, val icon: Int, val photo: Int, val bg: String)
 
     private val items = listOf(
-        Item("마이페이지", "나의 연습 현황과\n기록을 확인해요", R.drawable.ic_y_person, R.drawable.home_card_my, "#DEE7FC"),
+        Item("마이페이지", "나의 연습 현황과 기록을 확인해요", R.drawable.ic_y_person, R.drawable.home_card_my, "#DEE7FC"),
         Item("일반 주행", "자유롭게 연습 주행을 시작해요", R.drawable.ic_y_wheel, R.drawable.home_card_drive, "#FCF6F6"),
-        Item("퀘스트", "다양한 미션으로\n실력을 키워요", R.drawable.ic_y_quest, R.drawable.home_card_quest, "#E5F0F1"),
+        Item("퀘스트", "다양한 미션으로 실력을 키워요", R.drawable.ic_y_quest, R.drawable.home_card_quest, "#E5F0F1"),
     )
     private val cards = mutableListOf<View>()
     private val dots = mutableListOf<View>()
@@ -127,7 +127,7 @@ class HomeActivity : FadeActivity() {
         val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.TOP }
         head.addView(ImageView(this).apply { setImageResource(item.icon) }, LinearLayout.LayoutParams(dp(40f), dp(40f)).apply { topMargin = dp(2f) })
         val tx = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12f), 0, 0, 0) }
-        tx.addView(tv(item.title, 30f, Color.parseColor("#0F1B3D"), true))
+        tx.addView(tv(item.title, 38f, Color.parseColor("#0F1B3D"), true))
         tx.addView(tv(item.desc, 17f, Color.parseColor("#3A4766"), false).apply { setPadding(0, dp(8f), 0, 0); setLineSpacing(0f, 1.2f) })
         head.addView(tx, LinearLayout.LayoutParams(0, -2, 1f))
         head.addView(ImageView(this).apply { setImageResource(R.drawable.ic_y_chev_right) }, LinearLayout.LayoutParams(dp(30f), dp(30f)).apply { topMargin = dp(6f) })
