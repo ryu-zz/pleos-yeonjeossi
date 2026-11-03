@@ -62,6 +62,12 @@
             android:label="연저씨" />
 
         <activity
+            android:name=".yeonsu.DriveLoadingActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.Yeonsu"
+            android:label="연저씨" />
+        <activity
             android:name=".yeonsu.DriveActivity"
             android:exported="false"
             android:resizeableActivity="true"
