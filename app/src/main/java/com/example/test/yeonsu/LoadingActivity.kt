@@ -23,7 +23,7 @@ class LoadingActivity : AppCompatActivity() {
             setImageResource(R.drawable.yeonsu_loading_bg)
             scaleType = ImageView.ScaleType.CENTER_CROP
         })
-        handler.postDelayed(goNext, 1000)
+        handler.postDelayed(goNext, 1500)
     }
 
     override fun onDestroy() {

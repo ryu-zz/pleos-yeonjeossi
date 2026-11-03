@@ -67,7 +67,7 @@ class StartActivity : AppCompatActivity() {
         })
         right.addView(startButton(), LinearLayout.LayoutParams(dp(300f), dp(84f)).apply { topMargin = dp(30f) })
         root.addView(right, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER_VERTICAL or Gravity.END).apply {
-            rightMargin = dp(48f); topMargin = dp(40f)
+            rightMargin = dp(150f); topMargin = dp(40f)
         })
     }
 
