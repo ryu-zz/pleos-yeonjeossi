@@ -52,11 +52,23 @@ class DriveActivity : FadeActivity() {
         }
         setContentView(root)
         initTts()
+        // 일반 주행 카드에서 왔으면 먼저 이 화면을 만들어 두고 그 위에 내비를 연다.
+        // 사용자가 내비 오른쪽 손잡이(⋮)를 왼쪽으로 끌면 이 앱이 오른쪽 칸에 나타난다.
+        if (savedInstanceState == null && intent.getBooleanExtra(EXTRA_OPEN_NAVI, false)) {
+            root.postDelayed({ openNavi() }, 400)
+        }
         // 창 크기가 바뀌면(분할 화면 등) 현재 크기에 맞게 다시 그린다.
         root.addOnLayoutChangeListener { _, l, tp, r, b, _, _, _, _ ->
             val w = r - l; val h = b - tp
             if (w > 0 && h > 0 && (w != builtW || h != builtH)) { builtW = w; builtH = h; build(root, w, h) }
         }
+    }
+
+    private fun openNavi() {
+        try {
+            startActivity(android.content.Intent().setClassName(NAVI_PKG, "$NAVI_PKG.MainActivity")
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (e: Exception) { Log.e(TAG, "내비 열기 실패 ${e.message}") }
     }
 
     private var builtW = 0
@@ -275,5 +287,7 @@ class DriveActivity : FadeActivity() {
     companion object {
         private const val TAG = "DriveActivity"
         private const val VOICE = "EUNWOO"
+        const val EXTRA_OPEN_NAVI = "open_navi"
+        private const val NAVI_PKG = "ai.umos.maps.android.navigation.app"
     }
 }
