@@ -61,6 +61,12 @@
             android:theme="@style/Theme.Yeonsu"
             android:label="연저씨" />
 
+        <activity
+            android:name=".yeonsu.DriveActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.Yeonsu"
+            android:label="연저씨" />
         <!-- 연저씨 · 첫 탑승 세팅 (아직 메인 화면과 연결하지 않음) -->
         <activity
             android:name=".yeonsu.FirstRideActivity"

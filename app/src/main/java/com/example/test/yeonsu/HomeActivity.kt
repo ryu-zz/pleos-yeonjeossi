@@ -70,7 +70,7 @@ class HomeActivity : FadeActivity() {
         val cardH = (h * 0.70f).toInt()
         items.forEachIndexed { i, it ->
             val c = buildCard(it, cardW, cardH)
-            c.setOnClickListener { _ -> if (i == selected) soon(it.title) else select(i) }
+            c.setOnClickListener { _ -> if (i == selected) { if (it.title == "일반 주행") goTo(DriveActivity::class.java) else soon(it.title) } else select(i) }
             root.addView(c, FrameLayout.LayoutParams(cardW, cardH, Gravity.CENTER).apply { topMargin = dp(8f) })
             cards.add(c)
         }
