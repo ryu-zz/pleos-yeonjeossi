@@ -6,18 +6,23 @@ import android.os.Looper
 import android.widget.FrameLayout
 import android.widget.ImageView
 import com.example.test.R
-/** 연저씨 · 연습 주행 로딩. 일반 주행 카드를 누르면 먼저 나오고, 1.5초 뒤 일반 주행 화면으로 넘어간다. */
+/** 연저씨 · 일반 주행 로딩. 시작 전 로딩 페이지를 보여주고 1.5초 뒤 플레오스 내비를 켠다. */
 class DriveLoadingActivity : FadeActivity() {
     private val handler = Handler(Looper.getMainLooper())
-    private val goNext = Runnable { goTo(DriveActivity::class.java) }
+    private val goNext = Runnable {
+        // 일반 주행 화면을 뒤에 깔고 그 위에 내비를 켠다. (손잡이를 끌면 이 앱이 오른쪽 칸에 나온다)
+        startActivity(android.content.Intent(this, DriveActivity::class.java).putExtra(DriveActivity.EXTRA_OPEN_NAVI, true))
+        finish()
+        @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val img = ImageView(this).apply {
-            setImageResource(R.drawable.drive_loading_bg)
+            setImageResource(R.drawable.yeonsu_loading_bg)
             scaleType = ImageView.ScaleType.CENTER_CROP
         }
         setContentView(FrameLayout(this).apply {
-            setBackgroundColor(Color.parseColor("#9DC3FE"))
+            setBackgroundColor(Color.parseColor("#EEF2FF"))
             addView(img, FrameLayout.LayoutParams(-1, -1))
         })
         handler.postDelayed(goNext, 1500)
