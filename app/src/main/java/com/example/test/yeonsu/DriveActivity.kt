@@ -52,10 +52,20 @@ class DriveActivity : FadeActivity() {
         }
         setContentView(root)
         initTts()
-        root.post { build(root, root.width, root.height) }
+        // 창 크기가 바뀌면(분할 화면 등) 현재 크기에 맞게 다시 그린다.
+        root.addOnLayoutChangeListener { _, l, tp, r, b, _, _, _, _ ->
+            val w = r - l; val h = b - tp
+            if (w > 0 && h > 0 && (w != builtW || h != builtH)) { builtW = w; builtH = h; build(root, w, h) }
+        }
     }
 
+    private var builtW = 0
+    private var builtH = 0
+    private var lastChip = ""
+    private var lastText = ""
+
     private fun build(root: FrameLayout, w: Int, h: Int) {
+        root.removeAllViews()
         val colW = minOf(w.toFloat(), h * 941f / 1670f).toInt()
         s = colW / 941f
         val col = FrameLayout(this)
@@ -69,6 +79,11 @@ class DriveActivity : FadeActivity() {
         buildActive(activeLayer)
         // 헤더는 두 상태에서 공통
         col.addView(buildHeader(), FrameLayout.LayoutParams(-1, -2, Gravity.TOP).apply { topMargin = dp(36f) })
+        if (driving) {
+            idleLayer.visibility = View.GONE; activeLayer.visibility = View.VISIBLE; activeLayer.alpha = 1f
+            bubbleChip.visibility = if (lastChip.isEmpty()) View.GONE else View.VISIBLE
+            bubbleChip.text = lastChip; bubbleText.text = lastText
+        }
     }
 
     private fun buildHeader(): View {
@@ -202,6 +217,7 @@ class DriveActivity : FadeActivity() {
 
     /** 말풍선에 문구를 보여주고 같은 내용을 음성으로도 읽는다. */
     private fun show(category: String, text: String) {
+        lastChip = category; lastText = text
         bubbleChip.visibility = if (category.isEmpty()) View.GONE else View.VISIBLE
         bubbleChip.text = category
         bubbleText.text = text
