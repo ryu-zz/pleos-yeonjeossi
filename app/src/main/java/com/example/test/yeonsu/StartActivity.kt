@@ -60,32 +60,32 @@ class StartActivity : AppCompatActivity() {
 
         // 오른쪽: 문구 + 버튼
         val right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
-        right.addView(tv("자네, 오늘도", 42f, Color.parseColor("#0F1B3D"), bold = true, italic = true))
-        right.addView(tv("나와 함께하겠나?", 42f, Color.parseColor("#1030E0"), bold = true, italic = true).apply { setPadding(0, dp(6f), 0, 0) })
-        right.addView(tv("더 안전하고, 더 스마트한\n운전 연수의 시작", 20f, Color.parseColor("#33415C")).apply {
+        right.addView(tv("자네, 오늘도", 50f, Color.parseColor("#0F1B3D"), bold = true, italic = true))
+        right.addView(tv("나와 함께하겠나?", 50f, Color.parseColor("#1030E0"), bold = true, italic = true).apply { setPadding(0, dp(6f), 0, 0) })
+        right.addView(tv("더 안전하고, 더 스마트한\n운전 연수의 시작", 25f, Color.parseColor("#33415C")).apply {
             setLineSpacing(0f, 1.25f); setPadding(0, dp(22f), 0, 0)
         })
-        right.addView(startButton(), LinearLayout.LayoutParams(dp(300f), dp(84f)).apply { topMargin = dp(30f) })
+        right.addView(startButton(), LinearLayout.LayoutParams(dp(390f), dp(108f)).apply { topMargin = dp(34f) })
         root.addView(right, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER_VERTICAL or Gravity.END).apply {
-            rightMargin = dp(150f); topMargin = dp(40f)
+            rightMargin = dp(105f); topMargin = dp(40f)
         })
     }
 
     private fun startButton(): View {
         val bg = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.parseColor("#12A3A8"), Color.parseColor("#0B6AA8"))).apply {
-            cornerRadius = dp(42f).toFloat()
+            cornerRadius = dp(50f).toFloat()
             setStroke(dp(2f), Color.parseColor("#88FFFFFF"))
         }
         return LinearLayout(this).apply {
             background = bg; gravity = Gravity.CENTER; orientation = LinearLayout.HORIZONTAL
             elevation = dp(10f).toFloat(); isClickable = true; isFocusable = true
-            addView(tv("시작하기", 28f, Color.WHITE, bold = true))
+            addView(tv("시작하기", 36f, Color.WHITE, bold = true))
             addView(ImageView(context).apply { setImageResource(R.drawable.ic_y_chev_right); setColorFilter(Color.WHITE) },
-                LinearLayout.LayoutParams(dp(30f), dp(30f)).apply { leftMargin = dp(18f) })
+                LinearLayout.LayoutParams(dp(38f), dp(38f)).apply { leftMargin = dp(20f) })
             setOnClickListener {
                 startActivity(Intent(this@StartActivity, HomeActivity::class.java))
                 finish()
-                @Suppress("DEPRECATION") overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                @Suppress("DEPRECATION") overridePendingTransition(R.anim.y_fade_in, R.anim.y_fade_out)
             }
             setOnTouchListener { v, e ->
                 when (e.actionMasked) {
