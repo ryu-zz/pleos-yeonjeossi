@@ -16,7 +16,6 @@ import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import ai.pleos.playground.tts.TextToSpeech
 import ai.pleos.playground.vehicle.Vehicle
 import ai.pleos.playground.vehicle.api.model.area.SeatArea
@@ -36,7 +35,7 @@ import ai.pleos.playground.tts.listener.OnInitializeListener as TtsInit
  *
  * Virtual Console 조작: Seat Belt(Telltales) / Brake Pedal
  */
-class FirstRideActivity : AppCompatActivity() {
+class FirstRideActivity : FadeActivity() {
 
     private enum class Check { VEHICLE, SELF, SAVE_SEAT, INFO }
 

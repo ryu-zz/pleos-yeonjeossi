@@ -14,11 +14,10 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import com.example.test.R
 
 /** 연저씨 · 메인 화면. 카드 3장: 마이페이지 / 일반 주행 / 퀘스트 (좌우 화살표로 넘김). */
-class HomeActivity : AppCompatActivity() {
+class HomeActivity : FadeActivity() {
 
     private class Item(val title: String, val desc: String, val icon: Int, val photo: Int, val bg: String)
 

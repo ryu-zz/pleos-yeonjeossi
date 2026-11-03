@@ -37,7 +37,7 @@
             android:name=".yeonsu.LoadingActivity"
             android:exported="true"
             android:screenOrientation="landscape"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:theme="@style/Theme.Yeonsu"
             android:icon="@mipmap/ic_yeonsu"
             android:roundIcon="@mipmap/ic_yeonsu_round"
             android:label="연저씨">
@@ -51,21 +51,21 @@
             android:name=".yeonsu.StartActivity"
             android:exported="false"
             android:screenOrientation="landscape"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:theme="@style/Theme.Yeonsu"
             android:label="연저씨" />
 
         <activity
             android:name=".yeonsu.HomeActivity"
             android:exported="false"
             android:screenOrientation="landscape"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:theme="@style/Theme.Yeonsu"
             android:label="연저씨" />
 
         <!-- 연저씨 · 첫 탑승 세팅 (아직 메인 화면과 연결하지 않음) -->
         <activity
             android:name=".yeonsu.FirstRideActivity"
             android:exported="true"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+            android:theme="@style/Theme.Yeonsu"
             android:label="연저씨" />
     </application>
 </manifest>

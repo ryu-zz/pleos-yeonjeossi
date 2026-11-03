@@ -12,11 +12,10 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import com.example.test.R
 
 /** 연저씨 · 시작 화면 (와이어프레임: 캐릭터 왼쪽, 문구 오른쪽, 하단 "시작하기") */
-class StartActivity : AppCompatActivity() {
+class StartActivity : FadeActivity() {
 
     private var k = 1f
     private fun dp(v: Float) = (v * k).toInt()
@@ -83,9 +82,7 @@ class StartActivity : AppCompatActivity() {
             addView(ImageView(context).apply { setImageResource(R.drawable.ic_y_chev_right); setColorFilter(Color.WHITE) },
                 LinearLayout.LayoutParams(dp(38f), dp(38f)).apply { leftMargin = dp(20f) })
             setOnClickListener {
-                startActivity(Intent(this@StartActivity, HomeActivity::class.java))
-                finish()
-                @Suppress("DEPRECATION") overridePendingTransition(R.anim.y_fade_in, R.anim.y_fade_out)
+                goTo(HomeActivity::class.java)
             }
             setOnTouchListener { v, e ->
                 when (e.actionMasked) {
