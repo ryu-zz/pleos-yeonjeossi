@@ -92,7 +92,7 @@ class QuestListActivity : ScreenActivity() {
                 outlineProvider = object : android.view.ViewOutlineProvider() {
                     override fun getOutline(v: View, o: android.graphics.Outline) { o.setRoundRect(0, 0, v.width, v.height, dp(18f).toFloat()) }
                 }
-            }, LinearLayout.LayoutParams(dp(150f), dp(100f)).apply { rightMargin = dp(20f) })
+            }, LinearLayout.LayoutParams(dp(180f), dp(108f)).apply { rightMargin = dp(20f) })
         } else {
             row.addView(tv(QuestData.symbol(QuestSession.type, QuestSession.category), 40f, ScreenActivity.NAVY).apply {
                 gravity = Gravity.CENTER; background = rounded(Color.parseColor("#99FFFFFF"), 22f)
