@@ -74,6 +74,34 @@
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density"
             android:theme="@style/Theme.Yeonsu"
             android:label="연저씨" />
+        <activity
+            android:name=".yeonsu.QuestTypesActivity"
+            android:exported="false"
+            android:resizeableActivity="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density"
+            android:theme="@style/Theme.Yeonsu"
+            android:label="연저씨" />
+        <activity
+            android:name=".yeonsu.QuestListActivity"
+            android:exported="false"
+            android:resizeableActivity="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density"
+            android:theme="@style/Theme.Yeonsu"
+            android:label="연저씨" />
+        <activity
+            android:name=".yeonsu.QuestDetailActivity"
+            android:exported="false"
+            android:resizeableActivity="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density"
+            android:theme="@style/Theme.Yeonsu"
+            android:label="연저씨" />
+        <activity
+            android:name=".yeonsu.RecordsActivity"
+            android:exported="false"
+            android:resizeableActivity="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density"
+            android:theme="@style/Theme.Yeonsu"
+            android:label="연저씨" />
         <!-- 연저씨 · 첫 탑승 세팅 (아직 메인 화면과 연결하지 않음) -->
         <activity
             android:name=".yeonsu.FirstRideActivity"
