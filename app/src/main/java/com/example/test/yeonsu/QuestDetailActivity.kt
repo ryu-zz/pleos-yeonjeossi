@@ -77,12 +77,22 @@ class QuestDetailActivity : ScreenActivity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(36f), 0, dp(36f), dp(24f))
         }
-        val poseView = pose(if (success) 2 else 0)
+        val imgId = resources.getIdentifier("quest_img_${q.c}_${QuestSession.questIndex}", "drawable", packageName)
+        val photo = !success && QuestSession.type == "vehicle" && imgId != 0
+        val poseView: android.view.View = if (photo) android.widget.ImageView(this).apply {
+            setImageResource(imgId); scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+            if (!compact) {
+                adjustViewBounds = true; clipToOutline = true
+                outlineProvider = object : android.view.ViewOutlineProvider() {
+                    override fun getOutline(v: android.view.View, o: android.graphics.Outline) { o.setRoundRect(0, 0, v.width, v.height, dp(30f).toFloat()) }
+                }
+            }
+        } else pose(if (success) 2 else 0)
         if (compact) {
             root.addView(poseView, LinearLayout.LayoutParams(-1, 0, 0.28f))
             root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 0.72f))
         } else {
-            root.addView(poseView, LinearLayout.LayoutParams(0, -1, 0.40f))
+            root.addView(poseView, if (photo) LinearLayout.LayoutParams(0, -2, 0.46f) else LinearLayout.LayoutParams(0, -1, 0.40f))
             root.addView(scroll, LinearLayout.LayoutParams(0, -2, 0.60f).apply { leftMargin = dp(24f) })
         }
         content.addView(root, FrameLayout.LayoutParams(-1, -1))
