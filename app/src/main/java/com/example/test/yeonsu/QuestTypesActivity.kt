@@ -13,7 +13,7 @@ class QuestTypesActivity : ScreenActivity() {
 
     override fun build(content: FrameLayout, w: Int, h: Int) {
         val guide = LinearLayout(this).apply { orientation = if (compact) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL; gravity = Gravity.CENTER }
-        val bubble = bubble("어떤 퀘스트에", "도전해볼까?", if (compact) 30f else 40f)
+        val bubble = bubble("자네, 퀘스트에", "도전해보겠나?", if (compact) 30f else 40f)
         val pose = pose(2)
         if (compact) {
             guide.addView(pose, LinearLayout.LayoutParams(0, -1, 0.9f))
@@ -24,9 +24,9 @@ class QuestTypesActivity : ScreenActivity() {
         }
 
         val cards = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
-        cards.addView(typeCard("♧", "차량 퀘스트", "내 차의 기본 조작부터 차근차근", "#E5F2FF", "#CBDFF7", "vehicle"),
+        cards.addView(typeCard("차량 퀘스트", "차 기본 조작을 까먹었다고? 차근차근 따라해보자!", "#E5F2FF", "#CBDFF7", "vehicle"),
             LinearLayout.LayoutParams(-1, -2))
-        cards.addView(typeCard("⌖", "일상 퀘스트", "일상 속 운전을 조금 더 자신 있게", "#EFFBF2", "#D2ECDA", "daily"),
+        cards.addView(typeCard("일상 퀘스트", "연저씨가 옆에서 하나하나 다 알려줄게", "#EFFBF2", "#D2ECDA", "daily"),
             LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(24f) })
 
         val root = LinearLayout(this).apply {
@@ -43,7 +43,7 @@ class QuestTypesActivity : ScreenActivity() {
         content.addView(root, FrameLayout.LayoutParams(-1, -1))
     }
 
-    private fun typeCard(symbol: String, title: String, desc: String, c1: String, c2: String, type: String): View {
+    private fun typeCard(title: String, desc: String, c1: String, c2: String, type: String): View {
         val row = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
             background = gradientBox(c1, c2, 34f)
@@ -54,7 +54,6 @@ class QuestTypesActivity : ScreenActivity() {
                 goTo(QuestListActivity::class.java)
             }
         }
-        row.addView(tv(symbol, 56f, ScreenActivity.NAVY), LinearLayout.LayoutParams(dp(80f), -2).also { it.rightMargin = dp(8f) })
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         col.addView(tv(title, 36f, ScreenActivity.NAVY, true))
         col.addView(tv(desc, 20f, ScreenActivity.GRAY).apply { setPadding(0, dp(10f), 0, 0) })
