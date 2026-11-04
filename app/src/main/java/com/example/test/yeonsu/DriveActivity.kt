@@ -90,7 +90,8 @@ class DriveActivity : FadeActivity() {
         buildIdle(idleLayer)
         buildActive(activeLayer)
         // 헤더는 두 상태에서 공통
-        col.addView(buildHeader(), FrameLayout.LayoutParams(-1, -2, Gravity.TOP).apply { topMargin = dp(36f) })
+        // 헤더(연저씨 마크 / 홈·설정·도움말)는 세로 열이 아니라 창 전체 폭 기준: 마크는 맨 왼쪽, 버튼은 맨 오른쪽
+        root.addView(buildHeader(), FrameLayout.LayoutParams(-1, -2, Gravity.TOP).apply { topMargin = dp(36f) })
         if (driving) {
             idleLayer.visibility = View.GONE; activeLayer.visibility = View.VISIBLE; activeLayer.alpha = 1f
             bubbleChip.visibility = if (lastChip.isEmpty()) View.GONE else View.VISIBLE
