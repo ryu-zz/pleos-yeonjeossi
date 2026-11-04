@@ -12,12 +12,9 @@ class Tutorial(val name: String, val guide: String, val done: String, val avail:
 
 object QuestData {
     val cats = mapOf(
-        "vehicle" to listOf("출발 준비", "방향지시등", "와이퍼", "전조등", "창문·문·트렁크", "공조·시야", "주행 기능", "전기차 기능", "내비·음성", "비상상황"),
+        "vehicle" to listOf("출발 준비", "방향지시등", "와이퍼", "전조등", "창문 기능", "공조 시야", "주행 기능", "전기차", "내비", "비상상황"),
         "daily" to listOf("차 관리", "드라이브스루", "주차", "고속도로", "보호구역", "생활 이동", "특수 도로", "시간·날씨", "도전"),
     )
-    private val vehicleSymbols = listOf("◉", "↔", "☂", "☀", "▱", "♨", "◎", "⚡", "⌖", "△")
-    private val dailySymbols = listOf("◉", "↔", "☂", "☀", "▱", "♨", "◎", "⌖", "△")
-    fun symbol(type: String, c: Int) = (if (type == "vehicle") vehicleSymbols else dailySymbols)[c]
     val vehicleTutorials: List<List<Tutorial>> = listOf(
         listOf(
             Tutorial("운전석 앞뒤 조절", "페달을 편하게 밟을 수 있도록 좌석을 조절해보세요.", "좋아요. 좌석 위치를 조절했어요.", "확인 가능"),
@@ -176,6 +173,8 @@ object QuestSession {
     var type = "vehicle"
     var category = 0
     var questIndex = 0
+    /** 왼쪽 카테고리 목록의 스크롤 위치(종류별). 카테고리를 눌러도, 화면을 다시 그려도 그 자리에 있게 한다. */
+    val catScroll = HashMap<String, Int>()
     fun selected(): Quest = QuestData.quest(type, category, questIndex)
 }
 

@@ -19,32 +19,28 @@ class QuestListActivity : ScreenActivity() {
         val green = type == "daily"
         val cats = QuestData.cats.getValue(type)
 
-        // 카테고리 (동그라미 + 이름)
+        // 카테고리: 같은 굵기·같은 색의 선 아이콘 + 가운데 정렬된 이름
         val catBar = LinearLayout(this).apply {
             orientation = if (compact) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
+            gravity = Gravity.CENTER_HORIZONTAL
         }
+        val scrollKey = type + if (compact) "-x" else "-y"
         cats.forEachIndexed { i, name ->
             val sel = i == QuestSession.category
             val item = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL
-                setPadding(dp(8f), dp(8f), dp(8f), dp(8f))
+                setPadding(dp(4f), dp(12f), dp(4f), dp(12f))
+                if (sel) { background = rounded(Color.WHITE, 24f); elevation = dp(2f).toFloat() }
                 isClickable = true; isFocusable = true
                 setOnClickListener { QuestSession.category = i; refresh() }
             }
-            val selColor = Color.parseColor(if (green) "#418368" else "#315E99")
-            item.addView(tv(QuestData.symbol(type, i), 34f, if (sel) Color.WHITE else Color.parseColor("#7D8BA0")).apply {
-                gravity = Gravity.CENTER
-                background = android.graphics.drawable.GradientDrawable().apply {
-                    shape = android.graphics.drawable.GradientDrawable.OVAL
-                    setColor(if (sel) selColor else Color.parseColor("#E6EDF5")); setStroke(dp(3f), Color.WHITE)
-                }
-                elevation = dp(3f).toFloat()
-            }, LinearLayout.LayoutParams(dp(74f), dp(74f)))
-            item.addView(tv(name, 17f, if (sel) Color.parseColor("#244A7F") else Color.parseColor("#7D8BA0"), sel).apply { setPadding(0, dp(8f), 0, 0) })
-            catBar.addView(item, LinearLayout.LayoutParams(if (compact) dp(104f) else dp(120f), -2))
+            item.addView(catIcon(type, i, 46f), LinearLayout.LayoutParams(dp(46f), dp(46f)))
+            item.addView(tv(name, 17f, if (sel) ScreenActivity.NAVY else Color.parseColor("#7D8BA0"), sel).apply {
+                gravity = Gravity.CENTER; textAlignment = View.TEXT_ALIGNMENT_CENTER
+                maxLines = 1; setPadding(0, dp(8f), 0, 0)
+            }, LinearLayout.LayoutParams(-1, -2))
+            catBar.addView(item, LinearLayout.LayoutParams(if (compact) dp(104f) else dp(120f), -2).apply { bottomMargin = dp(4f) })
         }
-
         // 퀘스트 목록
         val right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val titleRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
@@ -62,11 +58,17 @@ class QuestListActivity : ScreenActivity() {
             setPadding(dp(36f), 0, dp(36f), dp(24f))
         }
         if (compact) {
-            root.addView(HorizontalScrollView(this).apply { addView(catBar); isHorizontalScrollBarEnabled = false },
+            root.addView(HorizontalScrollView(this).apply {
+                addView(catBar); isHorizontalScrollBarEnabled = false
+                restoreScroll(this, scrollKey, true)
+            },
                 LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10f) })
             root.addView(right, LinearLayout.LayoutParams(-1, 0, 1f))
         } else {
-            root.addView(ScrollView(this).apply { addView(catBar); isVerticalScrollBarEnabled = false },
+            root.addView(ScrollView(this).apply {
+                addView(catBar); isVerticalScrollBarEnabled = false
+                restoreScroll(this, scrollKey, false)
+            },
                 LinearLayout.LayoutParams(dp(130f), -1).apply { rightMargin = dp(24f) })
             root.addView(right, LinearLayout.LayoutParams(0, -1, 1f))
         }
@@ -94,9 +96,10 @@ class QuestListActivity : ScreenActivity() {
                 }
             }, LinearLayout.LayoutParams(dp(180f), dp(108f)).apply { rightMargin = dp(20f) })
         } else {
-            row.addView(tv(QuestData.symbol(QuestSession.type, QuestSession.category), 40f, ScreenActivity.NAVY).apply {
-                gravity = Gravity.CENTER; background = rounded(Color.parseColor("#99FFFFFF"), 22f)
-            }, LinearLayout.LayoutParams(dp(100f), dp(100f)).apply { rightMargin = dp(20f) })
+            row.addView(FrameLayout(this).apply {
+            background = rounded(Color.parseColor("#99FFFFFF"), 22f)
+            addView(catIcon(QuestSession.type, QuestSession.category, 52f), FrameLayout.LayoutParams(dp(52f), dp(52f), Gravity.CENTER))
+        }, LinearLayout.LayoutParams(dp(100f), dp(100f)).apply { rightMargin = dp(20f) })
         }
         val text = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         text.addView(tv(q.name, 28f, ScreenActivity.NAVY, true))
@@ -107,5 +110,18 @@ class QuestListActivity : ScreenActivity() {
         }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(12f) })
         row.addView(tv("›", 44f, Color.parseColor("#4A5B7A")).apply { setPadding(dp(12f), 0, 0, 0) })
         return row
+    }
+
+    /** 카테고리 선 아이콘. 모두 같은 굵기, 같은 색(NAVY) 한 가지만 쓴다. */
+    private fun catIcon(type: String, i: Int, size: Float) = android.widget.ImageView(this).apply {
+        val id = resources.getIdentifier("ic_cat_${if (type == "vehicle") "v" else "d"}$i", "drawable", packageName)
+        setImageResource(id); setColorFilter(ScreenActivity.NAVY)
+        scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+    }
+    /** 카테고리를 눌러 화면이 다시 그려져도 스크롤이 맨 위로 돌아가지 않게, 위치를 기억하고 되돌린다. */
+    private fun restoreScroll(v: View, key: String, horizontal: Boolean) {
+        v.setOnScrollChangeListener { _, x, y, _, _ -> QuestSession.catScroll[key] = if (horizontal) x else y }
+        val pos = QuestSession.catScroll[key] ?: 0
+        if (pos > 0) v.post { if (horizontal) v.scrollTo(pos, 0) else v.scrollTo(0, pos) }
     }
 }
