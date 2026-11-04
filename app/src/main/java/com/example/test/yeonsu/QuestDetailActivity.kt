@@ -25,7 +25,7 @@ class QuestDetailActivity : ScreenActivity() {
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = rounded(Color.parseColor("#CCFFFFFF"), 36f, Color.WHITE, 3f)
-            setPadding(dp(36f), dp(32f), dp(36f), dp(32f)); elevation = dp(4f).toFloat()
+            setPadding(dp(32f), dp(26f), dp(32f), dp(26f)); elevation = dp(4f).toFloat()
         }
         panel.addView(tv(if (success) "퀘스트 완료" else cats[q.c], 20f, Color.parseColor("#2E66AA"), true).apply {
             background = rounded(Color.parseColor("#DCEAFA"), 24f); setPadding(dp(18f), dp(8f), dp(18f), dp(8f))
@@ -79,10 +79,29 @@ class QuestDetailActivity : ScreenActivity() {
         }
         val imgId = resources.getIdentifier("quest_img_${q.c}_${QuestSession.questIndex}", "drawable", packageName)
         val photo = !success && QuestSession.type == "vehicle" && imgId != 0
+        // 사진은 원래 비율을 유지하고, 높이를 오른쪽 카드 높이와 똑같이 맞춘다.
+        var photoH = (h * 0.66f).toInt()
+        var photoW = 0
+        if (photo && !compact) {
+            val o = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            android.graphics.BitmapFactory.decodeResource(resources, imgId, o)
+            val aspect = (o.outWidth.toFloat() / o.outHeight).coerceAtMost(1.1f) // 거의 정사각형으로 보여준다(넓은 사진은 좌우를 조금 잘라냄)
+            val availW = w - dp(72f) - dp(24f)
+            // 카드 내용이 잘리지 않도록, 카드의 실제 필요 높이를 먼저 재서 사진 높이로 쓴다(카드 폭이 정해지면 다시 한 번 잰다).
+            val maxW = (availW * 0.42f).toInt()
+            var cardW = (availW * 0.58f).toInt()
+            repeat(2) {
+                panel.measure(android.view.View.MeasureSpec.makeMeasureSpec(cardW, android.view.View.MeasureSpec.EXACTLY), android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED))
+                photoH = panel.measuredHeight.coerceIn((h * 0.5f).toInt(), (h * 0.9f).toInt())
+                photoW = minOf((photoH * aspect).toInt(), maxW)
+                cardW = availW - photoW
+            }
+        }
         val poseView: android.view.View = if (photo) android.widget.ImageView(this).apply {
-            setImageResource(imgId); scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+            setImageResource(imgId)
+            scaleType = if (compact) android.widget.ImageView.ScaleType.FIT_CENTER else android.widget.ImageView.ScaleType.CENTER_CROP
             if (!compact) {
-                adjustViewBounds = true; clipToOutline = true
+                clipToOutline = true
                 outlineProvider = object : android.view.ViewOutlineProvider() {
                     override fun getOutline(v: android.view.View, o: android.graphics.Outline) { o.setRoundRect(0, 0, v.width, v.height, dp(30f).toFloat()) }
                 }
@@ -91,8 +110,14 @@ class QuestDetailActivity : ScreenActivity() {
         if (compact) {
             root.addView(poseView, LinearLayout.LayoutParams(-1, 0, 0.28f))
             root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 0.72f))
+        } else if (photo) {
+            // 카드(scroll)도 같은 높이로 고정. 내용이 더 길면 카드 안에서 스크롤된다.
+            scroll.isFillViewport = true
+            panel.gravity = Gravity.CENTER_VERTICAL
+            root.addView(poseView, LinearLayout.LayoutParams(photoW, photoH))
+            root.addView(scroll, LinearLayout.LayoutParams(0, photoH, 1f).apply { leftMargin = dp(24f) })
         } else {
-            root.addView(poseView, if (photo) LinearLayout.LayoutParams(0, -2, 0.46f) else LinearLayout.LayoutParams(0, -1, 0.40f))
+            root.addView(poseView, LinearLayout.LayoutParams(0, -1, 0.40f))
             root.addView(scroll, LinearLayout.LayoutParams(0, -2, 0.60f).apply { leftMargin = dp(24f) })
         }
         content.addView(root, FrameLayout.LayoutParams(-1, -1))
