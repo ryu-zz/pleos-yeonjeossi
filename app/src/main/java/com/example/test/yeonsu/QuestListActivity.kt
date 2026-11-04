@@ -18,6 +18,7 @@ class QuestListActivity : ScreenActivity() {
         val type = QuestSession.type
         val green = type == "daily"
         val cats = QuestData.cats.getValue(type)
+        selItem = null
 
         // 카테고리 (동그라미 + 이름)
         val catBar = LinearLayout(this).apply {
@@ -32,6 +33,7 @@ class QuestListActivity : ScreenActivity() {
                 isClickable = true; isFocusable = true
                 setOnClickListener { QuestSession.category = i; refresh() }
             }
+            if (sel) selItem = item
             val selColor = Color.parseColor(if (green) "#418368" else "#315E99")
             item.addView(tv(QuestData.symbol(type, i), 34f, if (sel) Color.WHITE else Color.parseColor("#7D8BA0")).apply {
                 gravity = Gravity.CENTER
@@ -62,17 +64,33 @@ class QuestListActivity : ScreenActivity() {
             setPadding(dp(36f), 0, dp(36f), dp(24f))
         }
         if (compact) {
-            root.addView(HorizontalScrollView(this).apply { addView(catBar); isHorizontalScrollBarEnabled = false },
+            root.addView(HorizontalScrollView(this).apply {
+                addView(catBar); isHorizontalScrollBarEnabled = false
+                keepScroll(this, { scrollX }) { scrollTo(it, 0) }
+                post { selItem?.let { smoothScrollTo(it.left + it.width / 2 - width / 2, 0) } }
+            },
                 LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10f) })
             root.addView(right, LinearLayout.LayoutParams(-1, 0, 1f))
         } else {
-            root.addView(ScrollView(this).apply { addView(catBar); isVerticalScrollBarEnabled = false },
+            root.addView(ScrollView(this).apply {
+                addView(catBar); isVerticalScrollBarEnabled = false
+                keepScroll(this, { scrollY }) { scrollTo(0, it) }
+                post { selItem?.let { smoothScrollTo(0, it.top + it.height / 2 - height / 2) } }
+            },
                 LinearLayout.LayoutParams(dp(130f), -1).apply { rightMargin = dp(24f) })
             root.addView(right, LinearLayout.LayoutParams(0, -1, 1f))
         }
         content.addView(root, FrameLayout.LayoutParams(-1, -1))
     }
 
+    /** 카테고리 바의 스크롤 위치를 기억해 두었다가, 다시 그릴 때 그 위치에서 시작한다 (이후 선택 항목을 가운데로 부드럽게 옮김). */
+    private fun keepScroll(v: View, get: () -> Int, set: (Int) -> Unit) {
+        v.post { set(catScroll) }
+        v.viewTreeObserver.addOnScrollChangedListener { if (v.isAttachedToWindow) catScroll = get() }
+    }
+    /** 선택된 카테고리 항목 (스크롤 가운데로 옮길 대상) */
+    private var selItem: View? = null
+    companion object { var catScroll = 0 }
     private fun questCard(i: Int): View {
         val q = QuestData.quest(QuestSession.type, QuestSession.category, i)
         val st = store.state(q).status
