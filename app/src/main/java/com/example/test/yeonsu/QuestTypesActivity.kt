@@ -1,64 +1,86 @@
 package com.example.test.yeonsu
-
-import android.app.Activity
 import android.graphics.Color
-import android.view.Gravity
+import android.graphics.Matrix
+import android.graphics.RectF
+import android.graphics.drawable.GradientDrawable
+import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
-import android.widget.LinearLayout
-
-/** 연저씨 · 퀘스트 종류 선택 (HTML types.js). 차량 퀘스트 / 일상 퀘스트. */
-class QuestTypesActivity : ScreenActivity() {
-    override val parentScreen: Class<out Activity> = HomeActivity::class.java
-
-    override fun build(content: FrameLayout, w: Int, h: Int) {
-        val guide = LinearLayout(this).apply { orientation = if (compact) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL; gravity = Gravity.CENTER }
-        val bubble = bubble("자네, 퀘스트에", "도전해보겠나?", if (compact) 30f else 40f)
-        val pose = pose(2)
-        if (compact) {
-            guide.addView(pose, LinearLayout.LayoutParams(0, -1, 0.9f))
-            guide.addView(bubble, LinearLayout.LayoutParams(0, -2, 1.2f))
-        } else {
-            guide.addView(bubble, LinearLayout.LayoutParams(-2, -2).apply { gravity = Gravity.START; leftMargin = dp(20f) })
-            guide.addView(pose, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(12f) })
+import android.widget.ImageView
+import android.widget.Toast
+import com.example.test.R
+/**
+ * 연저씨 · 퀘스트 종류 선택.
+ * 디자인 시안(UI image/연저씨의 운전 퀘스트 도전.png)을 화면에 꽉 채워 띄우고,
+ * 그림 속 버튼 위치마다 투명한 터치 영역을 얹는다.
+ */
+class QuestTypesActivity : FadeActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val img = ImageView(this).apply {
+            setImageResource(R.drawable.yeonsu_quest_types)
+            scaleType = ImageView.ScaleType.MATRIX
         }
-
-        val cards = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
-        cards.addView(typeCard("차량 퀘스트", "차 기본 조작을 까먹었다고? 차근차근 따라해보자!", "#E5F2FF", "#CBDFF7", "vehicle"),
-            LinearLayout.LayoutParams(-1, -2))
-        cards.addView(typeCard("일상 퀘스트", "연저씨가 옆에서 하나하나 다 알려줄게", "#EFFBF2", "#D2ECDA", "daily"),
-            LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(24f) })
-
-        val root = LinearLayout(this).apply {
-            orientation = if (compact) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
-            setPadding(dp(36f), 0, dp(36f), dp(28f))
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(Color.parseColor("#EAF1FD"))
+            addView(img, FrameLayout.LayoutParams(-1, -1))
         }
-        if (compact) {
-            root.addView(guide, LinearLayout.LayoutParams(-1, 0, 0.42f))
-            root.addView(cards, LinearLayout.LayoutParams(-1, 0, 0.58f))
-        } else {
-            root.addView(guide, LinearLayout.LayoutParams(0, -1, 0.43f))
-            root.addView(cards, LinearLayout.LayoutParams(0, -1, 0.57f).apply { leftMargin = dp(40f) })
+        val spots = listOf(
+            Triple(RectF(48f, 48f, 128f, 128f), "뒤로") { goTo(HomeActivity::class.java) },
+            Triple(RectF(1092f, 44f, 1180f, 132f), "홈") { goTo(HomeActivity::class.java) },
+            Triple(RectF(1208f, 44f, 1296f, 132f), "설정") { soon("설정") },
+            Triple(RectF(1324f, 44f, 1416f, 132f), "도움말") { soon("도움말") },
+            Triple(RectF(576f, 244f, 1428f, 556f), "차량 퀘스트") { open("vehicle") },
+            Triple(RectF(576f, 604f, 1428f, 924f), "일상 퀘스트") { open("daily") },
+        ).map { (rect, name, action) ->
+            val v = View(this).apply {
+                isClickable = true; isFocusable = true; contentDescription = name
+                background = GradientDrawable().apply { setColor(Color.TRANSPARENT) }
+                setOnClickListener { action() }
+                setOnTouchListener { view, e ->
+                    val bg = view.background as GradientDrawable
+                    when (e.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> bg.setColor(Color.parseColor("#22000000"))
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> bg.setColor(Color.TRANSPARENT)
+                    }
+                    false
+                }
+            }
+            root.addView(v, FrameLayout.LayoutParams(0, 0))
+            rect to v
         }
-        content.addView(root, FrameLayout.LayoutParams(-1, -1))
-    }
-
-    private fun typeCard(title: String, desc: String, c1: String, c2: String, type: String): View {
-        val row = LinearLayout(this).apply {
-            gravity = Gravity.CENTER_VERTICAL
-            background = gradientBox(c1, c2, 34f)
-            setPadding(dp(30f), dp(34f), dp(30f), dp(34f))
-            elevation = dp(4f).toFloat(); isClickable = true; isFocusable = true
-            setOnClickListener {
-                QuestSession.type = type; QuestSession.category = 0
-                goTo(QuestListActivity::class.java)
+        setContentView(root)
+        img.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            val d = img.drawable ?: return@addOnLayoutChangeListener
+            if (img.width == 0 || img.height == 0) return@addOnLayoutChangeListener
+            // 화면을 빈틈없이 채우는 배율(넘치는 부분은 가운데 기준으로 잘림)
+            val iw = d.intrinsicWidth.toFloat(); val ih = d.intrinsicHeight.toFloat()
+            val s = maxOf(img.width / iw, img.height / ih)
+            val m = Matrix().apply { setScale(s, s); postTranslate((img.width - iw * s) / 2f, (img.height - ih * s) / 2f) }
+            img.imageMatrix = m
+            val sx = iw / SRC_W; val sy = ih / SRC_H
+            spots.forEach { (src, v) ->
+                val r = RectF(src.left * sx, src.top * sy, src.right * sx, src.bottom * sy)
+                m.mapRect(r)
+                val lp = v.layoutParams as FrameLayout.LayoutParams
+                val nl = r.left.toInt(); val nt = r.top.toInt(); val nw = r.width().toInt(); val nh = r.height().toInt()
+                if (lp.leftMargin != nl || lp.topMargin != nt || lp.width != nw || lp.height != nh) {
+                    lp.leftMargin = nl; lp.topMargin = nt; lp.width = nw; lp.height = nh
+                    (v.background as GradientDrawable).cornerRadius = minOf(nw, nh) * 0.2f
+                    v.post { v.layoutParams = lp }
+                }
             }
         }
-        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        col.addView(tv(title, 36f, ScreenActivity.NAVY, true))
-        col.addView(tv(desc, 20f, ScreenActivity.GRAY).apply { setPadding(0, dp(10f), 0, 0) })
-        row.addView(col, LinearLayout.LayoutParams(0, -2, 1f))
-        row.addView(tv("›", 52f, Color.parseColor("#4A5B7A")))
-        return row
+    }
+    private fun open(type: String) {
+        QuestSession.type = type; QuestSession.category = 0; QuestListActivity.catScroll = 0
+        goTo(QuestListActivity::class.java)
+    }
+    private fun soon(name: String) = Toast.makeText(this, "$name 화면은 준비 중이에요", Toast.LENGTH_SHORT).show()
+    companion object {
+        /** 터치 영역 좌표의 기준 크기 (yeonsu_quest_types.png 원본 픽셀) */
+        private const val SRC_W = 1462f
+        private const val SRC_H = 1076f
     }
 }
