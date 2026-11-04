@@ -31,9 +31,10 @@ class QuestDetailActivity : ScreenActivity() {
             background = rounded(Color.parseColor("#DCEAFA"), 24f); setPadding(dp(18f), dp(8f), dp(18f), dp(8f))
         }, LinearLayout.LayoutParams(-2, -2))
         panel.addView(tv(if (success) "좋아, 잘 해냈어!" else q.name, 44f, ScreenActivity.NAVY, true).apply { setPadding(0, dp(16f), 0, 0) })
-        panel.addView(tv(if (success) "작은 확인 하나가 익숙한 습관이 되는 거야." else q.desc, 22f, ScreenActivity.GRAY).apply {
+        panel.addView(tv(if (success) (q.doneMsg ?: "작은 확인 하나가 익숙한 습관이 되는 거야.") else q.desc, 22f, ScreenActivity.GRAY).apply {
             setPadding(0, dp(12f), 0, dp(8f)); setLineSpacing(0f, 1.3f)
         })
+        if (q.avail != null && !success) panel.addView(tv("차량 데이터 확인: " + q.avail, 17f, Color.parseColor("#758298")).apply { setPadding(0, 0, 0, dp(4f)) })
         val steps = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         q.steps.forEachIndexed { i, name ->
             val ok = i < s.step

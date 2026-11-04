@@ -33,7 +33,7 @@ class QuestListActivity : ScreenActivity() {
                 setOnClickListener { QuestSession.category = i; refresh() }
             }
             val selColor = Color.parseColor(if (green) "#418368" else "#315E99")
-            item.addView(tv(QuestData.symbols[i], 34f, if (sel) Color.WHITE else Color.parseColor("#7D8BA0")).apply {
+            item.addView(tv(QuestData.symbol(type, i), 34f, if (sel) Color.WHITE else Color.parseColor("#7D8BA0")).apply {
                 gravity = Gravity.CENTER
                 background = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.OVAL
@@ -84,9 +84,20 @@ class QuestListActivity : ScreenActivity() {
             isClickable = true; isFocusable = true
             setOnClickListener { QuestSession.questIndex = i; goTo(QuestDetailActivity::class.java) }
         }
-        row.addView(tv(QuestData.symbols[QuestSession.category], 40f, ScreenActivity.NAVY).apply {
-            gravity = Gravity.CENTER; background = rounded(Color.parseColor("#99FFFFFF"), 22f)
-        }, LinearLayout.LayoutParams(dp(84f), dp(84f)).apply { rightMargin = dp(20f) })
+        val imgId = resources.getIdentifier("quest_img_${q.c}_$i", "drawable", packageName)
+        if (QuestSession.type == "vehicle" && imgId != 0) {
+            row.addView(android.widget.ImageView(this).apply {
+                setImageResource(imgId); scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                clipToOutline = true
+                outlineProvider = object : android.view.ViewOutlineProvider() {
+                    override fun getOutline(v: View, o: android.graphics.Outline) { o.setRoundRect(0, 0, v.width, v.height, dp(18f).toFloat()) }
+                }
+            }, LinearLayout.LayoutParams(dp(150f), dp(100f)).apply { rightMargin = dp(20f) })
+        } else {
+            row.addView(tv(QuestData.symbol(QuestSession.type, QuestSession.category), 40f, ScreenActivity.NAVY).apply {
+                gravity = Gravity.CENTER; background = rounded(Color.parseColor("#99FFFFFF"), 22f)
+            }, LinearLayout.LayoutParams(dp(100f), dp(100f)).apply { rightMargin = dp(20f) })
+        }
         val text = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         text.addView(tv(q.name, 28f, ScreenActivity.NAVY, true))
         text.addView(tv(q.desc, 18f, ScreenActivity.GRAY).apply { setPadding(0, dp(8f), 0, 0) })
