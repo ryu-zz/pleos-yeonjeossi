@@ -31,6 +31,8 @@ abstract class ScreenActivity : FadeActivity() {
 
     /** 뒤로 가기(‹)로 돌아갈 화면 */
     protected abstract val parentScreen: Class<out Activity>
+    /** 화면 배경. 기본은 하늘색 그라데이션, 화면별로 바꿀 수 있다. */
+    protected open fun screenBackground(): android.graphics.drawable.Drawable = StartActivity.skyBackground()
     /** 헤더 아래 영역(content)에 화면을 그린다. w, h는 content의 크기. */
     protected abstract fun build(content: FrameLayout, w: Int, h: Int)
 
@@ -40,7 +42,7 @@ abstract class ScreenActivity : FadeActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        root = FrameLayout(this).apply { background = StartActivity.skyBackground() }
+        root = FrameLayout(this).apply { background = screenBackground() }
         setContentView(root)
         root.addOnLayoutChangeListener { _, l, t, r, b, _, _, _, _ ->
             val w = r - l; val h = b - t
