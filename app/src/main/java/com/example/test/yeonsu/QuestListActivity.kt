@@ -25,34 +25,59 @@ class QuestListActivity : ScreenActivity() {
             gravity = Gravity.CENTER_HORIZONTAL
         }
         val scrollKey = type + if (compact) "-x" else "-y"
+        val right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        /** 오른쪽(제목 + 퀘스트 카드)을 현재 카테고리로 채운다. */
+        fun fillRight() {
+            right.removeAllViews()
+            val titleRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+            titleRow.addView(tv(cats[QuestSession.category], 40f, ScreenActivity.NAVY, true), LinearLayout.LayoutParams(0, -2, 1f))
+            titleRow.addView(tv(if (green) "일상 퀘스트" else "차량 퀘스트", 20f, Color.parseColor("#76859A")))
+            right.addView(titleRow, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(18f); topMargin = dp(4f) })
+            val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            QuestData.names(type, QuestSession.category).forEachIndexed { i, _ ->
+                list.addView(questCard(i), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(16f) })
+            }
+            right.addView(ScrollView(this).apply { addView(list); isVerticalScrollBarEnabled = false }, LinearLayout.LayoutParams(-1, 0, 1f))
+        }
+        val items = ArrayList<Pair<LinearLayout, android.widget.TextView>>()
+        fun style(i: Int, sel: Boolean) {
+            val (item, label) = items[i]
+            item.background = if (sel) rounded(Color.WHITE, 24f) else null
+            item.elevation = if (sel) dp(2f).toFloat() else 0f
+            label.setTextColor(if (sel) ScreenActivity.NAVY else Color.parseColor("#7D8BA0"))
+            label.typeface = android.graphics.Typeface.create("sans-serif", if (sel) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+        }
         cats.forEachIndexed { i, name ->
-            val sel = i == QuestSession.category
             val item = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL
                 setPadding(dp(4f), dp(12f), dp(4f), dp(12f))
-                if (sel) { background = rounded(Color.WHITE, 24f); elevation = dp(2f).toFloat() }
                 isClickable = true; isFocusable = true
-                setOnClickListener { QuestSession.category = i; refresh() }
             }
             item.addView(catIcon(type, i, 46f), LinearLayout.LayoutParams(dp(46f), dp(46f)))
-            item.addView(tv(name, 17f, if (sel) ScreenActivity.NAVY else Color.parseColor("#7D8BA0"), sel).apply {
+            val label = tv(name, 17f, ScreenActivity.NAVY).apply {
                 gravity = Gravity.CENTER; textAlignment = View.TEXT_ALIGNMENT_CENTER
                 maxLines = 1; setPadding(0, dp(8f), 0, 0)
-            }, LinearLayout.LayoutParams(-1, -2))
+            }
+            item.addView(label, LinearLayout.LayoutParams(-1, -2))
+            items.add(item to label)
             catBar.addView(item, LinearLayout.LayoutParams(if (compact) dp(104f) else dp(120f), -2).apply { bottomMargin = dp(4f) })
         }
-        // 퀘스트 목록
-        val right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val titleRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        titleRow.addView(tv(cats[QuestSession.category], 40f, ScreenActivity.NAVY, true), LinearLayout.LayoutParams(0, -2, 1f))
-        titleRow.addView(tv(if (green) "일상 퀘스트" else "차량 퀘스트", 20f, Color.parseColor("#76859A")))
-        right.addView(titleRow, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(18f); topMargin = dp(4f) })
-        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        QuestData.names(type, QuestSession.category).forEachIndexed { i, _ ->
-            list.addView(questCard(i), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(16f) })
+        items.indices.forEach { style(it, it == QuestSession.category) }
+        fillRight()
+        // 카테고리를 눌러도 화면 전체를 다시 그리지 않는다. 선택 표시만 바꾸고 오른쪽 목록만 부드럽게 교체한다.
+        items.forEachIndexed { i, (item, _) ->
+            item.setOnClickListener {
+                val old = QuestSession.category
+                if (old == i) return@setOnClickListener
+                QuestSession.category = i
+                style(old, false); style(i, true)
+                right.animate().cancel()
+                right.animate().alpha(0f).setDuration(100).withEndAction {
+                    fillRight()
+                    right.animate().alpha(1f).setDuration(180).start()
+                }.start()
+            }
         }
-        right.addView(ScrollView(this).apply { addView(list); isVerticalScrollBarEnabled = false }, LinearLayout.LayoutParams(-1, 0, 1f))
-
         val root = LinearLayout(this).apply {
             orientation = if (compact) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
             setPadding(dp(36f), 0, dp(36f), dp(24f))
