@@ -34,9 +34,12 @@ class QuestDetailActivity : ScreenActivity() {
         panel.addView(tv(if (success) (q.doneMsg ?: "작은 확인 하나가 익숙한 습관이 되는 거야.") else q.desc, 22f, ScreenActivity.GRAY).apply {
             setPadding(0, dp(12f), 0, dp(8f)); setLineSpacing(0f, 1.3f)
         })
-        if (q.avail != null && !success) panel.addView(tv("차량 데이터 확인: " + q.avail, 17f, Color.parseColor("#758298")).apply { setPadding(0, 0, 0, dp(4f)) })
         val steps = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        q.steps.forEachIndexed { i, name ->
+        if (q.tip != null) {
+            steps.addView(tv("핵심: " + q.tip, 20f, Color.parseColor("#7A4A00"), true).apply {
+                background = rounded(Color.parseColor("#FFF1CC"), 18f); setPadding(dp(20f), dp(16f), dp(20f), dp(16f)); setLineSpacing(0f, 1.2f)
+            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10f) })
+        } else q.steps.forEachIndexed { i, name ->
             val ok = i < s.step
             steps.addView(tv((if (ok) "✓ " else "○ ") + name, 22f, if (ok) Color.parseColor("#2D7653") else ScreenActivity.NAVY).apply {
                 background = rounded(Color.parseColor(if (ok) "#D9EEE1" else "#EAF0F8"), 18f); setPadding(dp(20f), dp(16f), dp(20f), dp(16f))
@@ -61,7 +64,7 @@ class QuestDetailActivity : ScreenActivity() {
 
         if (!success && s.status == "doing") {
             panel.addView(tv("미리보기 조작 · 실제 차량 조작이 아닙니다", 16f, Color.parseColor("#758298")).apply { setPadding(0, dp(22f), 0, dp(8f)) })
-            panel.addView(tv(q.steps[s.step] + "　→", 22f, ScreenActivity.NAVY).apply {
+            panel.addView(tv((if (q.tip != null) "동작을 마쳤다고 치기" else q.steps[s.step]) + "　→", 22f, ScreenActivity.NAVY).apply {
                 background = rounded(Color.parseColor("#DFEBFA"), 16f); setPadding(dp(20f), dp(14f), dp(20f), dp(14f))
                 isClickable = true; isFocusable = true
                 setOnClickListener { if (store.advance(q)) success = true; refresh() }
