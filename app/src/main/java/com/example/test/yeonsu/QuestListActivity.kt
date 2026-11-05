@@ -109,10 +109,17 @@ class QuestListActivity : ScreenActivity() {
             setPadding(dp(24f), dp(20f), dp(24f), dp(20f))
             minimumHeight = dp(130f); elevation = dp(2f).toFloat()
             isClickable = true; isFocusable = true
-            setOnClickListener { QuestSession.questIndex = i; goTo(QuestDetailActivity::class.java) }
+            setOnClickListener {
+                QuestSession.questIndex = i
+                // 일상 퀘스트의 카테고리 맨 위 퀘스트는 시나리오부터 보여준다
+                if (QuestSession.type == "daily" && i == 0 && QuestData.flows.containsKey(QuestSession.category)) {
+                    QuestFlow.start(); goTo(ScenarioActivity::class.java)
+                } else goTo(QuestDetailActivity::class.java)
+            }
         }
-        val imgId = resources.getIdentifier("quest_img_${q.c}_$i", "drawable", packageName)
-        if (QuestSession.type == "vehicle" && imgId != 0) {
+        val imgName = if (QuestSession.type == "vehicle") "quest_img_${q.c}_$i" else if (i == 0) "scn_${q.c}_0" else ""
+        val imgId = if (imgName.isEmpty()) 0 else resources.getIdentifier(imgName, "drawable", packageName)
+        if (imgId != 0) {
             row.addView(android.widget.ImageView(this).apply {
                 setImageResource(imgId); scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
                 clipToOutline = true

@@ -8,6 +8,8 @@ import org.json.JSONObject
 class Quest(val id: String, val name: String, val c: Int, val steps: List<String>, val desc: String,
             val doneMsg: String? = null, val avail: String? = null, val tip: String? = null)
 /** 상세 튜토리얼.xlsx 한 줄: 이름, 앱 안내, 완료 안내, 데이터 상태. */
+/** 일상 퀘스트.xlsx 한 줄: 이름, 난이도(별), 직접 완료 여부. */
+class DailyQ(val name: String, val stars: String, val manual: Boolean)
 class Tutorial(val name: String, val guide: String, val done: String, val avail: String)
 
 object QuestData {
@@ -87,18 +89,68 @@ object QuestData {
             Tutorial("에어백 전개 연습", "부상자를 확인하고 119에 신고하세요.", "긴급 대응 순서를 확인했어요.", "가상 연습 가능"),
         ),
     )
-    private val daily = listOf(
-        listOf("출발 전 차량 한 바퀴", "주유·충전 준비 확인", "타이어 상태 살펴보기"),
-        listOf("주문 전 동선 확인", "결제와 수령 준비"),
-        listOf("주차선 안에 정차", "하차 전 주변 확인", "주차 위치 기억하기"),
-        listOf("진입 전 경로 확인", "출구 미리 확인하기"),
-        listOf("보호구역 표지 알아보기", "보행자 주변 살피기"),
-        listOf("익숙한 목적지 다녀오기", "동승자와 출발 준비"),
-        listOf("좁은 길 미리 살피기", "지하주차장 시야 확보"),
-        listOf("야간 출발 준비", "비 오는 날 출발 준비"),
-        listOf("출발 준비 혼자 해보기", "익숙한 경로 돌아보기"),
+    val dailyQuests: List<List<DailyQ>> = listOf(
+        listOf(
+            DailyQ("셀프 주유소에서 직접 주유하기", "★★", false),
+            DailyQ("자동 세차장 통과하기", "★★", false),
+            DailyQ("셀프 세차장에서 손세차하기", "★★", false),
+            DailyQ("타이어 공기압 넣고 오기", "★★", true),
+            DailyQ("정비소에서 엔진오일 교체하고 오기", "★★", false),
+            DailyQ("전기차 급속충전소에서 충전하기", "★★", false),
+        ),
+        listOf(
+            DailyQ("패스트푸드 드라이브스루 주문하기", "★★", false),
+            DailyQ("카페 드라이브스루 주문하기", "★★", false),
+            DailyQ("대형마트 온라인 주문 차량 픽업하기", "★★", false),
+            DailyQ("약국 드라이브스루 이용하기", "★★★", false),
+        ),
+        listOf(
+            DailyQ("대형마트 지하주차장에 주차하고 장보기", "★★", false),
+            DailyQ("백화점 나선형 주차장 오르내리기", "★★★", false),
+            DailyQ("기계식 주차타워 이용하기", "★★★", true),
+            DailyQ("노상 공영주차장에 주차하고 정산하기", "★★", true),
+            DailyQ("아파트 지하주차장 방문 등록하고 주차하기", "★★", true),
+        ),
+        listOf(
+            DailyQ("하이패스 톨게이트 통과하기", "★★★", false),
+            DailyQ("일반 차로에서 통행료 직접 내기", "★★★", false),
+            DailyQ("휴게소에서 쉬고 다시 출발하기", "★★★", false),
+            DailyQ("졸음쉼터 들렀다 가기", "★★★", false),
+            DailyQ("분기점에서 다른 고속도로로 갈아타기", "★★★★", false),
+        ),
+        listOf(
+            DailyQ("등교 시간 어린이보호구역 통과하기", "★★", false),
+            DailyQ("노인보호구역 통과하기", "★★", false),
+            DailyQ("학원가 도로 지나가기", "★★★", false),
+            DailyQ("전통시장 앞 혼잡한 도로 지나가기", "★★★", false),
+        ),
+        listOf(
+            DailyQ("기차역·버스터미널에서 사람 태워 오기", "★★★", false),
+            DailyQ("공항 출국장 앞에서 내려주기", "★★★", false),
+            DailyQ("대형병원에서 환자 내려주고 주차하기", "★★★", false),
+            DailyQ("아이 학원에서 데려오기", "★★", false),
+            DailyQ("택배 보내러 우체국 다녀오기", "★★", false),
+        ),
+        listOf(
+            DailyQ("한강 다리 건너기", "★★", false),
+            DailyQ("긴 터널 통과하기", "★★★", false),
+            DailyQ("산 고갯길 넘어가기", "★★★", false),
+            DailyQ("해안도로 드라이브하기", "★★", false),
+            DailyQ("도심 고가도로 달리기", "★★★", false),
+        ),
+        listOf(
+            DailyQ("해 진 뒤 야간 드라이브하기", "★★★", false),
+            DailyQ("비 오는 날 장보고 오기", "★★★", false),
+            DailyQ("출근 시간 막히는 길 운전하기", "★★★", false),
+            DailyQ("새벽 한적한 도로 달려보기", "★★", false),
+        ),
+        listOf(
+            DailyQ("처음 가보는 도시 다녀오기", "★★★★", false),
+            DailyQ("왕복 100km 드라이브하기", "★★★★", false),
+            DailyQ("친구 태우고 맛집 다녀오기", "★★★", false),
+            DailyQ("캠핑장 다녀오기", "★★★★", false),
+        ),
     )
-
     val tips = mapOf(
         "운전석 앞뒤 조절" to "페달을 끝까지 밟아도 무릎이 살짝 굽혀지는 위치!",
         "좌석 높이" to "앞 도로가 잘 보이고, 머리와 천장 사이에 주먹 하나가 들어갈 높이!",
@@ -151,7 +203,20 @@ object QuestData {
         "고속도로 고장 연습" to "차 안에 있지 말고 가드레일 밖으로 대피! 삼각대는 차 뒤쪽 멀리!",
         "에어백 전개 연습" to "부상자부터 확인하고 119 신고! 시동은 끄기!",
     )
-    fun names(type: String, c: Int): List<String> = if (type == "vehicle") vehicleTutorials[c].map { it.name } else daily[c]
+    /** 카테고리 맨 위 일상 퀘스트의 시나리오 흐름. query는 내비 앱 검색어. */
+    class Flow(val ask: String, val find: String, val query: String)
+    val flows = mapOf(
+        0 to Flow("근처 주유소로 안내할까요?", "주유소", "주유소"),
+        1 to Flow("근처 패스트푸드점으로 안내할까요?", "패스트푸드점", "맥도날드"),
+        2 to Flow("근처 대형마트로 안내할까요?", "대형마트", "이마트"),
+        3 to Flow("가까운 하이패스 톨게이트로 안내할까요?", "톨게이트", "톨게이트"),
+        4 to Flow("근처 초등학교(보호구역)로 안내할까요?", "초등학교", "초등학교"),
+        5 to Flow("근처 기차역으로 안내할까요?", "기차역", "기차역"),
+        6 to Flow("한강 다리로 안내할까요?", "한강 다리", "한강대교"),
+        7 to Flow("야간 드라이브하기 좋은 근처 공원으로 안내할까요?", "공원", "공원"),
+        8 to Flow("다른 도시의 시청으로 안내할까요?", "시청", "시청"),
+    )
+    fun names(type: String, c: Int): List<String> = if (type == "vehicle") vehicleTutorials[c].map { it.name } else dailyQuests[c].map { it.name }
 
     fun quest(type: String, c: Int, i: Int): Quest {
         val isV = type == "vehicle"
@@ -159,15 +224,24 @@ object QuestData {
             val t = vehicleTutorials[c][i]
             return Quest("$type-$c-$i", t.name, c, listOf(t.guide), t.guide, t.done, t.avail, tips[t.name])
         }
-        val name = names(type, c)[i]
-        val steps = when {
-            else -> listOf("안내 내용 살펴보기", "필요한 동작 확인하기", "확인 내용 돌아보기")
-        }
-        val desc = "한 단계씩 익히고, 내 차에 조금 더 익숙해져요."
-        return Quest("$type-$c-$i", name, c, steps, desc)
+        val d = dailyQuests[c][i]
+        val steps = listOf("안내 내용 살펴보기", "필요한 동작 확인하기", "확인 내용 돌아보기")
+        val desc = "난이도 ${d.stars} · " + (if (d.manual) "직접 완료 누르기" else "자동 확인")
+        return Quest("$type-$c-$i", d.name, c, steps, desc)
     }
 }
 
+/** 일상 퀘스트 시나리오 흐름의 현재 단계. */
+object QuestFlow {
+    const val INTRO = 0   // 처음 시나리오 보는 중
+    const val ASK = 1     // 안내할까요?
+    const val WAIT = 2    // 내비에서 장소 고르는 중
+    const val ARRIVED = 3 // 도착. 시나리오 한 번 더?
+    const val REPLAY = 4  // 시나리오 다시 보는 중
+    var stage = INTRO
+    var destName: String? = null
+    fun start() { stage = INTRO; destName = null }
+}
 /** 화면 사이에서 "지금 어떤 종류/카테고리/퀘스트를 보고 있는지" 유지한다(HTML의 type, category, selected). */
 object QuestSession {
     var type = "vehicle"
@@ -200,6 +274,13 @@ class QuestStore(context: Context) {
 
     fun stop(q: Quest) { prefs.edit().remove("p:" + q.id).apply() }
 
+    /** 단계 진행과 상관없이 완료 처리하고 기록을 남긴다. */
+    fun complete(q: Quest) {
+        prefs.edit().putString("p:" + q.id, "done|" + q.steps.size).apply()
+        val arr = JSONArray(prefs.getString("records", "[]"))
+        arr.put(JSONObject().put("id", q.id).put("name", q.name).put("at", System.currentTimeMillis()))
+        prefs.edit().putString("records", arr.toString()).apply()
+    }
     /** 다음 단계로 넘긴다. 마지막 단계면 완료 기록을 남기고 true. */
     fun advance(q: Quest): Boolean {
         val s = state(q)
