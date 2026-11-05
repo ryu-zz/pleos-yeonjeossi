@@ -60,10 +60,12 @@ class DailyFlowActivity : ScreenActivity() {
         override fun run() {
             if (QuestFlow.stage != QuestFlow.WAIT || QuestFlow.destName == null) return
             val m = guideMsgs[guideIdx++ % guideMsgs.size]
-            guideText?.text = m; speak(m)
+            guideText?.text = br(m); speak(m)
             guideHandler.postDelayed(this, 9000)
         }
     }
+    /** 느낌표 다음에서 줄을 바꾼다(화면 표시용). */
+    private fun br(t: String) = t.replace("! ", "!\n")
     private fun speak(t: String) { if (ttsReady) try { tts?.speak(t, true) } catch (_: Throwable) {} }
     private fun startGuide() { guideHandler.removeCallbacks(guideTick); guideHandler.postDelayed(guideTick, 1500) }
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
@@ -189,7 +191,7 @@ class DailyFlowActivity : ScreenActivity() {
             setPadding(dp(30f), dp(26f), dp(30f), dp(26f)); elevation = dp(4f).toFloat()
         }
         bubbleBox.addView(tv("길 안내 중 · $dest", 19f, Color.parseColor("#2D7653"), true).apply { gravity = Gravity.CENTER })
-        val g = tv(guideMsgs[guideIdx % guideMsgs.size], 38f, ScreenActivity.NAVY, true).apply {
+        val g = tv(br(guideMsgs[guideIdx % guideMsgs.size]), 38f, ScreenActivity.NAVY, true).apply {
             gravity = Gravity.CENTER; setLineSpacing(0f, 1.25f)
         }
         guideText = g
