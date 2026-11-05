@@ -103,6 +103,7 @@ class DailyFlowActivity : ScreenActivity() {
         val flow = QuestData.flows.getValue(QuestSession.category)
         val cats = QuestData.cats.getValue(QuestSession.type)
 
+        if (QuestFlow.stage == QuestFlow.WAIT && QuestFlow.destName != null) { buildGuide(content, q.name, QuestFlow.destName!!, flow); return }
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = rounded(Color.parseColor("#CCFFFFFF"), 36f, Color.WHITE, 3f)
@@ -171,6 +172,36 @@ class DailyFlowActivity : ScreenActivity() {
         content.addView(root, FrameLayout.LayoutParams(-1, -1))
     }
 
+    /** 경로 설정 후 화면: 길 안내가 주인공이고, 퀘스트 진행 중이라는 표시는 위쪽 작은 띠로만 둔다. */
+    private fun buildGuide(content: FrameLayout, questName: String, dest: String, flow: QuestData.Flow) {
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(36f), 0, dp(36f), dp(28f))
+        }
+        root.addView(tv("퀘스트 중 · $questName", 17f, Color.parseColor("#2E66AA"), true).apply {
+            maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
+            background = rounded(Color.parseColor("#DCEAFA"), 24f); setPadding(dp(16f), dp(7f), dp(16f), dp(7f))
+        }, LinearLayout.LayoutParams(-2, -2))
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+            background = rounded(Color.parseColor("#F2FFFFFF"), 36f, Color.WHITE, 3f)
+            setPadding(dp(32f), dp(28f), dp(32f), dp(28f)); elevation = dp(4f).toFloat()
+        }
+        card.addView(tv("길 안내 중 · $dest", 20f, Color.parseColor("#2D7653"), true).apply { gravity = Gravity.CENTER })
+        val g = tv(guideMsgs[guideIdx % guideMsgs.size], 46f, ScreenActivity.NAVY, true).apply {
+            gravity = Gravity.CENTER; setLineSpacing(0f, 1.25f)
+        }
+        guideText = g
+        card.addView(g, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(22f) })
+        root.addView(card, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(16f) })
+        val bar = LinearLayout(this).apply { gravity = Gravity.CENTER }
+        bar.addView(button("내비 열기", primary = false) { openNavi(flow) })
+        bar.addView(button("도착했다고 치기") { QuestFlow.stage = QuestFlow.ARRIVED; refresh() },
+            LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(14f) })
+        root.addView(bar, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(16f) })
+        content.addView(root, FrameLayout.LayoutParams(-1, -1))
+        startGuide()
+    }
     /**
      * 내비 앱을 앞으로 가져온 뒤, 내비 앱의 SEARCH_PLACE 신호로 장소를 검색한다.
      * 내비 앱이 지도에 번호 핀과 가까운 곳 목록을 보여주고, 목록의 화살표를 누르면 그 장소로 경로가 설정된다.
