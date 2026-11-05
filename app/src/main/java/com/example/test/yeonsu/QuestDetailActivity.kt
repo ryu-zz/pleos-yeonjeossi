@@ -67,7 +67,7 @@ class QuestDetailActivity : ScreenActivity() {
             panel.addView(tv((if (q.tip != null) "동작을 마쳤다고 치기" else q.steps[s.step]) + "　→", 22f, ScreenActivity.NAVY).apply {
                 background = rounded(Color.parseColor("#DFEBFA"), 16f); setPadding(dp(20f), dp(14f), dp(20f), dp(14f))
                 isClickable = true; isFocusable = true
-                setOnClickListener { if (store.advance(q)) success = true; refresh() }
+                setOnClickListener { if (store.advance(q)) goTo(QuestDoneActivity::class.java) else refresh() }
             }, LinearLayout.LayoutParams(-2, -2))
         }
 

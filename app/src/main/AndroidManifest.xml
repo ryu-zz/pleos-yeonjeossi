@@ -75,6 +75,12 @@
             android:theme="@style/Theme.Yeonsu"
             android:label="연저씨" />
         <activity
+            android:name=".yeonsu.QuestDoneActivity"
+            android:exported="false"
+            android:resizeableActivity="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density"
+            android:theme="@style/Theme.Yeonsu" />
+        <activity
             android:name=".yeonsu.QuestTypesActivity"
             android:exported="false"
             android:resizeableActivity="true"
