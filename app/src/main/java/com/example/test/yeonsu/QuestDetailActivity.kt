@@ -8,6 +8,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
 import com.example.test.yeonsu.door.DoorQuestController
+import com.example.test.yeonsu.headlamp.HeadlampQuestController
 import com.example.test.yeonsu.signal.TurnSignalQuestController
 
 /**
@@ -27,11 +28,14 @@ class QuestDetailActivity : ScreenActivity() {
     private val isTurnSignalQuest: Boolean get() = TurnSignalQuestController.isSignalQuest(QuestSession.selected().id)
     /** 운전석 문 신호로 판정하는 퀘스트인지(문 확인). */
     private val isDoorQuest: Boolean get() = DoorQuestController.isDoorQuest(QuestSession.selected().id)
-    /** 차량 신호(방향지시등 또는 문)로 판정하는 퀘스트인지. */
-    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest
+    /** 하향등 신호로 판정하는 퀘스트인지(하향등). */
+    private val isHeadlampQuest: Boolean get() = HeadlampQuestController.isHeadlampQuest(QuestSession.selected().id)
+    /** 차량 신호(방향지시등·문·하향등)로 판정하는 퀘스트인지. */
+    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest
 
     private var controller: TurnSignalQuestController? = null
     private var doorController: DoorQuestController? = null
+    private var headlampController: HeadlampQuestController? = null
     /** 차량 신호 경로에서 화면에 보여줄 현재 단계 안내/사유. */
     private var signalGuide: String? = null
     private var signalError: String? = null
@@ -84,8 +88,11 @@ class QuestDetailActivity : ScreenActivity() {
         if (!success && s.status == "doing") {
             if (isSignalQuest) {
                 // 차량 신호 경로: 현재 단계/사유만 보여주고 수동 완료 버튼은 제공하지 않는다.
-                val hint = if (isDoorQuest) "차량 신호로 확인하는 퀘스트예요 · 운전석 문을 직접 조작하세요"
-                           else "차량 신호로 확인하는 퀘스트예요 · 방향지시등을 직접 조작하세요"
+                val hint = when {
+                    isDoorQuest -> "차량 신호로 확인하는 퀘스트예요 · 운전석 문을 직접 조작하세요"
+                    isHeadlampQuest -> "차량 신호로 확인하는 퀘스트예요 · 전조등을 직접 조작하세요"
+                    else -> "차량 신호로 확인하는 퀘스트예요 · 방향지시등을 직접 조작하세요"
+                }
                 panel.addView(tv(hint, 16f, Color.parseColor("#758298"))
                     .apply { setPadding(0, dp(22f), 0, dp(8f)) })
                 signalGuide?.let { g ->
@@ -139,14 +146,20 @@ class QuestDetailActivity : ScreenActivity() {
     // ───── 시작/중단 분기 ─────
     private fun startQuest(q: Quest) {
         store.start(q)
-        if (isTurnSignalQuest) startSignal(q)
-        else if (isDoorQuest) startDoor(q)
+        when {
+            isTurnSignalQuest -> startSignal(q)
+            isDoorQuest -> startDoor(q)
+            isHeadlampQuest -> startHeadlamp(q)
+        }
         refresh()
     }
 
     private fun stopQuest(q: Quest) {
-        if (isTurnSignalQuest) stopSignal()
-        else if (isDoorQuest) stopDoor()
+        when {
+            isTurnSignalQuest -> stopSignal()
+            isDoorQuest -> stopDoor()
+            isHeadlampQuest -> stopHeadlamp()
+        }
         store.stop(q)
         refresh()
     }
@@ -200,15 +213,40 @@ class QuestDetailActivity : ScreenActivity() {
         doorController = null
     }
 
+    // ───── 하향등 경로 ─────
+    private fun startHeadlamp(q: Quest) {
+        signalError = null
+        if (headlampController != null) return
+        headlampController = HeadlampQuestController(applicationContext, object : HeadlampQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    // 완료 기록은 1건만. completeVerified 가 중복을 막고, 그 뒤 컨트롤러를 내려 추가 콜백을 차단한다.
+                    store.completeVerified(q)
+                    stopHeadlamp()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }).also { it.start() }
+    }
+
+    private fun stopHeadlamp() {
+        headlampController?.stop()
+        headlampController = null
+    }
+
     override fun onStop() {
         // 화면을 떠나면 구독 해제. 중단/이탈 후 도착하는 콜백은 컨트롤러가 무시한다.
-        if (!success) { stopSignal(); stopDoor() }
+        if (!success) { stopSignal(); stopDoor(); stopHeadlamp() }
         super.onStop()
     }
 
     override fun onDestroy() {
         stopSignal()
         stopDoor()
+        stopHeadlamp()
         super.onDestroy()
     }
 }
