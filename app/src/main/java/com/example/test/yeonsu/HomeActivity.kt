@@ -35,6 +35,23 @@ class HomeActivity : FadeActivity() {
 
     private var k = 1f
     private fun dp(v: Float) = (v * k).toInt()
+    private var rootLayout: FrameLayout? = null
+    private var banner: TextView? = null
+    /** 화면 가운데에 안내 문구를 잠깐 보여준다(토스트는 이 화면에서 잘 안 보여서 직접 그린다). */
+    private fun showBanner(msg: String) {
+        val r = rootLayout ?: return
+        banner?.let { r.removeView(it) }
+        val t = tv(msg, 26f, Color.WHITE, true).apply {
+            gravity = Gravity.CENTER; setPadding(dp(36f), dp(18f), dp(36f), dp(18f))
+            background = android.graphics.drawable.GradientDrawable().apply { setColor(Color.parseColor("#E60F1B3D")); cornerRadius = dp(40f).toFloat() }
+            elevation = dp(60f).toFloat(); alpha = 0f
+        }
+        banner = t
+        r.addView(t, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
+        t.animate().alpha(1f).setDuration(200).withEndAction {
+            t.animate().alpha(0f).setStartDelay(1800).setDuration(400).withEndAction { r.removeView(t); if (banner === t) banner = null }.start()
+        }.start()
+    }
     private fun tv(text: String, sp: Float, color: Int, bold: Boolean) = TextView(this).apply {
         this.text = text; setTextSize(TypedValue.COMPLEX_UNIT_PX, sp * k); setTextColor(color)
         typeface = Typeface.create("sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
@@ -44,6 +61,7 @@ class HomeActivity : FadeActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val root = FrameLayout(this).apply { background = StartActivity.skyBackground() }
+        rootLayout = root
         setContentView(root)
         root.post { build(root, root.width, root.height) }
     }
@@ -70,7 +88,7 @@ class HomeActivity : FadeActivity() {
         val cardH = (h * 0.70f).toInt()
         items.forEachIndexed { i, it ->
             val c = buildCard(it, cardW, cardH)
-            c.setOnClickListener { _ -> if (i == selected) { if (it.title == "일반 주행") goTo(DriveLoadingActivity::class.java) else if (it.title == "퀘스트") goTo(QuestTypesActivity::class.java) else goTo(RecordsActivity::class.java) } else select(i) }
+            c.setOnClickListener { _ -> if (i == selected) { if (it.title == "일반 주행") showBanner("서비스 구현 중...") else if (it.title == "퀘스트") goTo(QuestTypesActivity::class.java) else goTo(RecordsActivity::class.java) } else select(i) }
             root.addView(c, FrameLayout.LayoutParams(cardW, cardH, Gravity.CENTER).apply { topMargin = dp(8f) })
             cards.add(c)
         }
