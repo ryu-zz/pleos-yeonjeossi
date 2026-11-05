@@ -27,7 +27,7 @@ class RecordsActivity : ScreenActivity() {
         return listOf(
             HelpItem(a, "완료한 퀘스트 / 진행 중", "깬 퀘스트와 하고 있는 퀘스트의\n개수를 보여줘요", HelpPlace.OVER_MID, 0.5f, arrow = false),
             HelpItem(b, "나의 뱃지", "카테고리를 모두 깨면 뱃지를 받아요\n받은 뱃지는 여기에 모여요", HelpPlace.OVER_MID, 0.5f, arrow = false),
-            HelpItem(r, "최근 완료 기록", "최근에 깬 퀘스트가\n시간 순서대로 쌓여요", HelpPlace.OVER_MID, 0.3f, arrow = false),
+            HelpItem(r, "최근 완료 기록", "가장 최근에 깬 퀘스트 5개가\n새로 깰 때마다 업데이트돼요", HelpPlace.OVER_MID, 0.3f, arrow = false),
         )
     }
 
@@ -42,7 +42,7 @@ class RecordsActivity : ScreenActivity() {
         col.addView(stats, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(26f) })
         statsView = stats
 
-        // 나의 뱃지: 차량/일상 카테고리마다 한 칸. 받았으면 금색, 아직이면 흐리게
+        // 나의 뱃지: 차량 퀘스트 / 일상 퀘스트를 각각 따로 묶은 카드. 받았으면 금색, 아직이면 흐리게
         val badgeBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val earnedN = listOf("vehicle", "daily").sumOf { t -> QuestData.cats.getValue(t).indices.count { store.hasBadge(t, it) } }
         val totalN = QuestData.cats.values.sumOf { it.size }
@@ -51,26 +51,40 @@ class RecordsActivity : ScreenActivity() {
             addView(tv("나의 뱃지", 30f, ScreenActivity.NAVY, true), LinearLayout.LayoutParams(0, -2, 1f))
             addView(tv("$earnedN / $totalN", 20f, Color.parseColor("#76859A")))
         }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12f) })
-        listOf("vehicle" to "차량 퀘스트", "daily" to "일상 퀘스트").forEach { (t, label) ->
-            badgeBox.addView(tv(label, 18f, Color.parseColor("#76859A")).apply { setPadding(0, dp(6f), 0, dp(6f)) })
+        val cardsRow = LinearLayout(this).apply { orientation = if (compact) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL }
+        listOf("vehicle" to "차량 퀘스트", "daily" to "일상 퀘스트").forEachIndexed { idx, (t, label) ->
             val names = QuestData.cats.getValue(t)
+            val got = names.indices.count { store.hasBadge(t, it) }
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                background = rounded(Color.parseColor("#BBFFFFFF"), 28f, Color.WHITE, 3f)
+                setPadding(dp(24f), dp(20f), dp(24f), dp(16f))
+            }
+            card.addView(LinearLayout(this).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                addView(tv(label, 22f, ScreenActivity.NAVY, true), LinearLayout.LayoutParams(0, -2, 1f))
+                addView(tv("$got / ${names.size}", 18f, Color.parseColor("#76859A")))
+            }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8f) })
             val perRow = if (compact) 3 else 5
             names.indices.chunked(perRow).forEach { rowIdx ->
                 val row = LinearLayout(this)
                 rowIdx.forEach { i ->
-                    val got = store.hasBadge(t, i)
+                    val has = store.hasBadge(t, i)
                     val cell = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL; setPadding(0, dp(6f), 0, dp(6f)) }
                     cell.addView(ImageView(this).apply {
-                        setImageResource(R.drawable.ic_badge); alpha = if (got) 1f else 0.22f
-                        if (!got) colorFilter = android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix().apply { setSaturation(0f) })
-                    }, LinearLayout.LayoutParams(dp(64f), dp(64f)))
-                    cell.addView(tv(names[i], 15f, if (got) ScreenActivity.NAVY else Color.parseColor("#9AA6B8"), got).apply { maxLines = 1; setPadding(0, dp(4f), 0, 0) })
+                        setImageResource(R.drawable.ic_badge); alpha = if (has) 1f else 0.22f
+                        if (!has) colorFilter = android.graphics.ColorMatrixColorFilter(android.graphics.ColorMatrix().apply { setSaturation(0f) })
+                    }, LinearLayout.LayoutParams(dp(60f), dp(60f)))
+                    cell.addView(tv(names[i], 14f, if (has) ScreenActivity.NAVY else Color.parseColor("#9AA6B8"), has).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END; gravity = Gravity.CENTER; setPadding(0, dp(4f), 0, 0) }, LinearLayout.LayoutParams(-1, -2))
                     row.addView(cell, LinearLayout.LayoutParams(0, -2, 1f))
                 }
                 repeat(perRow - rowIdx.size) { row.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f)) }
-                badgeBox.addView(row, LinearLayout.LayoutParams(-1, -2))
+                card.addView(row, LinearLayout.LayoutParams(-1, -2))
             }
+            cardsRow.addView(card, if (compact) LinearLayout.LayoutParams(-1, -2).apply { if (idx > 0) topMargin = dp(14f) }
+                else LinearLayout.LayoutParams(0, -2, 1f).apply { if (idx > 0) leftMargin = dp(16f) })
         }
+        badgeBox.addView(cardsRow, LinearLayout.LayoutParams(-1, -2))
         col.addView(badgeBox, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(26f) })
         badgesView = badgeBox
 
@@ -80,10 +94,10 @@ class RecordsActivity : ScreenActivity() {
 
         val title = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         title.addView(tv("최근 완료 기록", 30f, ScreenActivity.NAVY, true), LinearLayout.LayoutParams(0, -2, 1f))
-        title.addView(tv("미리보기 기록", 18f, Color.parseColor("#76859A")))
+        title.addView(tv("최근 5개", 18f, Color.parseColor("#76859A")))
         recordsBox.addView(title, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(14f) })
 
-        val records = store.records()
+        val records = store.records().take(5)   // 가장 최근 5개만 보여준다(새로 깨면 가장 오래된 것이 밀려난다)
         if (records.isEmpty()) {
             val empty = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
