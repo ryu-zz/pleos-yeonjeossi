@@ -57,9 +57,11 @@ abstract class ScreenActivity : FadeActivity() {
         root.removeAllViews()
         val headerH = dp(96f)
         val content = FrameLayout(this)
-        root.addView(content, FrameLayout.LayoutParams(-1, -1).apply { topMargin = headerH })
-        root.addView(buildHeader(headerH), FrameLayout.LayoutParams(-1, headerH, Gravity.TOP))
-        build(content, bw, bh - headerH)
+        // 화면 가장자리에서 그림자·모서리가 잘리지 않도록 좌우를 안쪽으로 당긴다.
+        val sideL = dp(12f); val sideR = dp(30f)
+        root.addView(content, FrameLayout.LayoutParams(-1, -1).apply { topMargin = headerH; leftMargin = sideL; rightMargin = sideR })
+        root.addView(buildHeader(headerH), FrameLayout.LayoutParams(-1, headerH, Gravity.TOP).apply { leftMargin = sideL; rightMargin = sideR })
+        build(content, bw - sideL - sideR, bh - headerH)
     }
 
     private fun buildHeader(h: Int): View {
