@@ -2,74 +2,91 @@ package com.example.test.yeonsu
 
 import android.content.Context
 import android.graphics.*
-import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.Gravity
-import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 
-/** 도움말에서 강조할 영역 하나: 화면 위 사각형(rect), 제목, 설명. */
+/** 도움말에서 가리킬 대상 하나: 화면 위 사각형(rect), 제목, 설명. 글자는 대상 아래에 놓고 화살표로 대상을 가리킨다. */
 class HelpTarget(val rect: RectF, val title: String, val body: String)
 
 /**
- * 도움말 화면. 화면 전체를 어둡게 덮고, 설명할 영역만 밝게 뚫어 흰 테두리로 강조한다.
- * 각 영역 안쪽 아래에 흰 설명 상자를 놓는다. 화면 아무 곳이나 누르면 닫힌다.
- * k는 화면 배율(각 화면의 dp 환산 값).
+ * 도움말 화면. 화면 전체를 어둡게 덮고, 흰 글씨 설명과 흰 화살표로 대상을 가리킨다.
+ * 화면 아무 곳이나 누르면 닫힌다. k는 화면 배율(각 화면의 dp 환산 값).
  */
 class HelpOverlay(
     private val ctx: Context, private val k: Float, headline: String, hint: String,
     private val targets: List<HelpTarget>, private val onClose: () -> Unit,
 ) : FrameLayout(ctx) {
-    private val dim = Paint().apply { color = Color.parseColor("#B20F1B3D") }
-    private val clear = Paint(Paint.ANTI_ALIAS_FLAG).apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR) }
-    private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; color = Color.WHITE; strokeWidth = 3f * k * 1.3f }
+    private val dim = Paint().apply { color = Color.parseColor("#D00F1B3D") }
+    private val line = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; color = Color.WHITE; strokeWidth = 3.6f * k
+        strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
+    }
     private fun dp(v: Float) = (v * k).toInt()
     private fun tv(text: String, px: Float, color: Int, bold: Boolean) = TextView(ctx).apply {
         this.text = text; setTextSize(TypedValue.COMPLEX_UNIT_PX, px * k); setTextColor(color)
         typeface = Typeface.create("sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
-        includeFontPadding = false
+        includeFontPadding = false; gravity = Gravity.CENTER_HORIZONTAL
     }
+
+    private class Arrow(val sx: Float, val sy: Float, val ex: Float, val ey: Float, val bend: Float)
+    private val arrows = ArrayList<Arrow>()
 
     init {
         setWillNotDraw(false)
-        setLayerType(LAYER_TYPE_HARDWARE, null)
         isClickable = true; isFocusable = true
         setOnClickListener { close() }
-        // 위쪽 안내
         val head = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
-        head.addView(tv(headline, 34f, Color.WHITE, true))
-        head.addView(tv(hint, 19f, Color.parseColor("#D5DDF2"), false).apply { setPadding(0, dp(8f), 0, 0) })
-        addView(head, LayoutParams(-2, -2, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = dp(26f) })
-        // 영역별 설명 상자
-        targets.forEach { t ->
-            val box = LinearLayout(ctx).apply {
-                orientation = LinearLayout.VERTICAL
-                background = GradientDrawable().apply { setColor(Color.parseColor("#F5FFFFFF")); cornerRadius = dp(22f).toFloat() }
-                setPadding(dp(18f), dp(14f), dp(18f), dp(14f)); elevation = dp(6f).toFloat()
-            }
-            box.addView(tv(t.title, 26f, Color.parseColor("#0F1B3D"), true))
-            box.addView(tv(t.body, 17f, Color.parseColor("#3A4766"), false).apply { setPadding(0, dp(6f), 0, 0); setLineSpacing(0f, 1.2f) })
-            val inset = dp(14f)
-            addView(box, LayoutParams((t.rect.width() - 2 * inset).toInt(), -2, Gravity.TOP or Gravity.START).apply {
-                leftMargin = (t.rect.left + inset).toInt()
-                // 영역 안쪽 아래에 놓는다(높이를 모르므로 아래 기준 margin 대신 post에서 위치 보정)
-                topMargin = (t.rect.bottom - inset).toInt()
+        head.addView(tv(headline, 36f, Color.WHITE, true))
+        head.addView(tv(hint, 19f, Color.parseColor("#C9D3EC"), false).apply { setPadding(0, dp(8f), 0, 0) })
+        addView(head, LayoutParams(-2, -2, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = dp(24f) })
+
+        targets.forEachIndexed { i, t ->
+            val cx = t.rect.centerX()
+            val textW = dp(380f)
+            val box = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
+            box.addView(tv(t.title, 28f, Color.WHITE, true))
+            box.addView(tv(t.body, 18f, Color.WHITE, false).apply { setPadding(0, dp(6f), 0, 0); setLineSpacing(0f, 1.2f) })
+            val left = (cx - textW / 2f).coerceIn(dp(8f).toFloat(), 99999f)
+            addView(box, LayoutParams(textW, -2, Gravity.TOP or Gravity.START).apply {
+                leftMargin = left.toInt(); topMargin = (t.rect.bottom + dp(30f)).toInt()
             })
-            box.post { (box.layoutParams as LayoutParams).topMargin = (t.rect.bottom - inset - box.height).toInt(); box.requestLayout() }
+            // 글자 위쪽에서 시작해 카드 아래쪽 가장자리를 가리키는 화살표(살짝 휘게)
+            val bend = if (i % 2 == 0) -dp(26f).toFloat() else dp(26f).toFloat()
+            arrows.add(Arrow(cx + bend * 0.2f, t.rect.bottom + dp(26f), cx, t.rect.bottom - dp(4f), bend * 0.6f))
         }
         alpha = 0f
         animate().alpha(1f).setDuration(220).start()
     }
 
+    override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
+        super.onSizeChanged(w, h, ow, oh)
+        // 오른쪽 화면 밖으로 나간 글자 상자를 안쪽으로 당긴다
+        for (j in 0 until childCount) {
+            val c = getChildAt(j)
+            if (j == 0) continue
+            val lp = c.layoutParams as LayoutParams
+            val over = lp.leftMargin + lp.width - (w - dp(8f))
+            if (over > 0) lp.leftMargin -= over
+        }
+    }
+
     override fun onDraw(canvas: Canvas) {
-        val sc = canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), null)
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), dim)
-        val r = dp(34f).toFloat()
-        targets.forEach { canvas.drawRoundRect(it.rect, r, r, clear) }
-        canvas.restoreToCount(sc)
-        targets.forEach { canvas.drawRoundRect(it.rect, r, r, stroke) }
+        arrows.forEach { a ->
+            val p = Path().apply { moveTo(a.sx, a.sy); quadTo((a.sx + a.ex) / 2f + a.bend, (a.sy + a.ey) / 2f, a.ex, a.ey) }
+            canvas.drawPath(p, line)
+            // 화살촉: 끝점에서 휜 방향의 반대로 두 갈래
+            val cxp = (a.sx + a.ex) / 2f + a.bend; val cyp = (a.sy + a.ey) / 2f
+            val ang = Math.atan2((a.ey - cyp).toDouble(), (a.ex - cxp).toDouble())
+            val len = dp(18f).toFloat(); val spread = Math.toRadians(28.0)
+            for (s in listOf(-1, 1)) {
+                val t = ang + Math.PI + s * spread
+                canvas.drawLine(a.ex, a.ey, a.ex + (len * Math.cos(t)).toFloat(), a.ey + (len * Math.sin(t)).toFloat(), line)
+            }
+        }
     }
 
     fun close() {
