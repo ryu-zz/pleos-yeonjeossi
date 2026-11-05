@@ -65,6 +65,7 @@ abstract class ScreenActivity : FadeActivity() {
         root.addView(buildHeader(headerH), FrameLayout.LayoutParams(-1, headerH, Gravity.TOP).apply { leftMargin = sideL; rightMargin = sideR })
         build(content, bw - sideL - sideR, bh - headerH)
         unclip(root)
+        QuestStore(this).takeNewBadge()?.let { (type, c) -> showBadge(type, c) }
     }
 
     /** 부모가 자식의 그림자·모서리를 잘라내지 않도록 모든 하위 뷰의 잘라내기를 끈다(나중에 추가되는 뷰 포함). */
@@ -97,6 +98,24 @@ abstract class ScreenActivity : FadeActivity() {
             }, LinearLayout.LayoutParams(dp(56f), dp(56f)).apply { leftMargin = dp(12f) })
         }
         return row
+    }
+
+    // ───── 뱃지 획득 팝업 ─────
+    private fun showBadge(type: String, c: Int) {
+        val scrim = FrameLayout(this).apply { setBackgroundColor(Color.parseColor("#B20F1B3D")); isClickable = true; alpha = 0f }
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL
+            background = rounded(Color.WHITE, 36f); setPadding(dp(48f), dp(36f), dp(48f), dp(36f)); elevation = dp(12f).toFloat()
+        }
+        card.addView(ImageView(this).apply { setImageResource(R.drawable.ic_badge) }, LinearLayout.LayoutParams(dp(150f), dp(150f)))
+        card.addView(tv("뱃지를 받았어요!", 40f, NAVY, true).apply { setPadding(0, dp(14f), 0, 0); gravity = Gravity.CENTER })
+        val catName = QuestData.cats.getValue(type)[c]
+        card.addView(tv("'$catName' 카테고리를 모두 깼어요", 24f, GRAY).apply { setPadding(0, dp(10f), 0, dp(24f)); gravity = Gravity.CENTER })
+        card.addView(button("확인") { scrim.animate().alpha(0f).setDuration(180).withEndAction { root.removeView(scrim) }.start() }, LinearLayout.LayoutParams(-2, -2))
+        scrim.addView(card, FrameLayout.LayoutParams(minOf(dp(560f), (bw * 0.86f).toInt()), -2, Gravity.CENTER))
+        root.addView(scrim, FrameLayout.LayoutParams(-1, -1))
+        scrim.elevation = dp(120f).toFloat()
+        scrim.animate().alpha(1f).setDuration(220).start()
     }
 
     // ───── 도움말 ─────

@@ -280,6 +280,7 @@ class QuestStore(context: Context) {
         val arr = JSONArray(prefs.getString("records", "[]"))
         arr.put(JSONObject().put("id", q.id).put("name", q.name).put("at", System.currentTimeMillis()))
         prefs.edit().putString("records", arr.toString()).apply()
+        checkBadge(q)
     }
     /** 다음 단계로 넘긴다. 마지막 단계면 완료 기록을 남기고 true. */
     fun advance(q: Quest): Boolean {
@@ -291,12 +292,31 @@ class QuestStore(context: Context) {
             val arr = JSONArray(prefs.getString("records", "[]"))
             arr.put(JSONObject().put("id", q.id).put("name", q.name).put("at", System.currentTimeMillis()))
             prefs.edit().putString("records", arr.toString()).apply()
+            checkBadge(q)
             return true
         }
         prefs.edit().putString("p:" + q.id, "doing|$next").apply()
         return false
     }
 
+    // ───── 뱃지: 한 카테고리의 퀘스트를 모두 완료하면 받는다 ─────
+    private fun typeOf(q: Quest) = q.id.substringBefore("-")
+    fun categoryDone(type: String, c: Int): Boolean =
+        QuestData.names(type, c).indices.all { state(QuestData.quest(type, c, it)).status == "done" }
+    fun hasBadge(type: String, c: Int): Boolean = prefs.contains("badge:$type:$c")
+    /** 방금 완료한 퀘스트 때문에 카테고리가 모두 깨졌으면 뱃지를 주고 "새 뱃지"로 표시해 둔다. */
+    private fun checkBadge(q: Quest) {
+        val type = typeOf(q)
+        if (hasBadge(type, q.c) || !categoryDone(type, q.c)) return
+        prefs.edit().putLong("badge:$type:${q.c}", System.currentTimeMillis()).putString("pendingBadge", "$type|${q.c}").apply()
+    }
+    /** 아직 보여주지 않은 새 뱃지(종류, 카테고리 번호). 한 번 꺼내면 지워진다. */
+    fun takeNewBadge(): Pair<String, Int>? {
+        val raw = prefs.getString("pendingBadge", null) ?: return null
+        prefs.edit().remove("pendingBadge").apply()
+        val p = raw.split("|")
+        return Pair(p[0], p[1].toIntOrNull() ?: return null)
+    }
     fun count(status: String): Int = prefs.all.entries.count { it.key.startsWith("p:") && (it.value as? String)?.startsWith("$status|") == true }
 
     /** 최근 순. */
