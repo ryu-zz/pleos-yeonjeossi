@@ -1,6 +1,7 @@
 package com.example.test.yeonsu
 
 import android.graphics.Color
+import android.graphics.RectF
 import android.graphics.Outline
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -79,7 +80,7 @@ class HomeActivity : FadeActivity() {
 
         val tools = LinearLayout(this)
         listOf(R.drawable.ic_y_settings to "설정", R.drawable.ic_y_help to "도움말").forEach { (ic, name) ->
-            tools.addView(roundButton(ic, 56f) { soon(name) }, LinearLayout.LayoutParams(dp(56f), dp(56f)).apply { leftMargin = dp(12f) })
+            tools.addView(roundButton(ic, 56f) { if (name == "도움말") showHelp() else soon(name) }, LinearLayout.LayoutParams(dp(56f), dp(56f)).apply { leftMargin = dp(12f) })
         }
         root.addView(tools, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END).apply { topMargin = dp(20f); rightMargin = dp(32f) })
 
@@ -180,6 +181,38 @@ class HomeActivity : FadeActivity() {
                 setColor(if (i == selected) Color.parseColor("#14204A") else Color.parseColor("#9DB0E0"))
             }
         }
+    }
+
+    private var help: HelpOverlay? = null
+    /** 메인 화면 도움말: 카드 3장이 각각 무엇을 하는 곳인지 알려준다. */
+    private fun showHelp() {
+        val r = rootLayout ?: return
+        if (help != null) return
+        val sel = cards[selected]
+        val rects = cards.mapIndexed { i, c ->
+            val s = if (i == selected) 1f else 0.82f
+            val cx = r.width / 2f + c.translationX
+            val w = c.width * s; val hh = c.height * s
+            val top = c.top + (c.height - hh) / 2f + c.translationY
+            RectF(cx - w / 2f, top, cx + w / 2f, top + hh)
+        }.toMutableList()
+        // 겹쳐서 가려진 카드는 보이는 부분만 강조한다
+        val gap = dp(6f).toFloat()
+        for (i in rects.indices) {
+            if (i < selected) rects[i].right = minOf(rects[i].right, rects[i + 1].left - gap)
+            if (i > selected) rects[i].left = maxOf(rects[i].left, rects[i - 1].right + gap)
+        }
+        rects.forEach { it.left = maxOf(it.left, dp(8f).toFloat()); it.right = minOf(it.right, r.width - dp(8f).toFloat()) }
+        val bodies = listOf(
+            "나의 연습 기록과\n완료한 퀘스트를 봐요",
+            "자유롭게 주행하며\n안내를 받아요\n(서비스 구현 중)",
+            "차량 조작과 일상 운전을\n미션으로 연습해요",
+        )
+        val targets = items.mapIndexed { i, it -> HelpTarget(rects[i], it.title, bodies[i]) }
+        val o = HelpOverlay(this, k, "여기가 메인 화면이에요", "화면을 누르면 닫혀요", targets) { help = null }
+        help = o
+        r.addView(o, FrameLayout.LayoutParams(-1, -1))
+        o.elevation = dp(100f).toFloat()
     }
 
     private fun soon(name: String) =
