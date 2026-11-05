@@ -233,7 +233,7 @@ class DriveActivity : FadeActivity() {
         lastChip = category; lastText = text
         bubbleChip.visibility = if (category.isEmpty()) View.GONE else View.VISIBLE
         bubbleChip.text = category
-        bubbleText.text = text
+        bubbleText.text = text.replace("! ", "!\n")
         speak(text.replace("\n", " "))
     }
 
