@@ -16,6 +16,12 @@ class LoadingActivity : FadeActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 다른 앱을 갔다가 연저씨 아이콘으로 돌아온 경우: 처음부터 다시 시작하지 않고, 아래에 있던 화면을 그대로 보여준다.
+        if (live > 0) {
+            finish()
+            @Suppress("DEPRECATION") overridePendingTransition(0, 0)
+            return
+        }
         val img = ImageView(this).apply {
             setImageResource(R.drawable.yeonsu_loading_bg)
             scaleType = ImageView.ScaleType.CENTER_CROP
