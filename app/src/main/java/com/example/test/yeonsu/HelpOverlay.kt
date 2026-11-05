@@ -55,22 +55,25 @@ class HelpOverlay(
             box.measure(MeasureSpec.makeMeasureSpec(textW, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED))
             val bh = box.measuredHeight
             val bx: Float; val by: Float
+            val len = dp(70f).toFloat()   // 모든 화살표 길이를 같게
+            val gap = dp(6f).toFloat()    // 화살촉과 대상 사이 간격
+            val pad = dp(10f).toFloat()   // 화살표 끝과 글자 사이 간격
             when (t.place) {
-                HelpPlace.OVER_MID -> {   // 카드 위 중간에 글자, 글자 위에서 카드 제목 쪽으로 화살표
+                HelpPlace.OVER_MID -> {   // 카드 위 중간에 글자, 글자 위에서 위쪽으로 화살표
                     bx = cx - textW / 2f; by = t.rect.top + t.rect.height() * t.frac
-                    arrows.add(Arrow(cx, by - dp(14f), cx, t.rect.top + t.rect.height() * (t.frac - 0.2f), 0f, 0f))
+                    arrows.add(Arrow(cx, by - pad, cx, by - pad - len, 0f, 0f))
                 }
                 HelpPlace.LEFT -> {       // 카드 왼쪽에 글자, 오른쪽의 카드를 가리킨다
-                    bx = t.rect.left - dp(56f) - textW; by = cy - bh / 2f
-                    arrows.add(Arrow(t.rect.left - dp(50f), cy, t.rect.left - dp(6f), cy, 0f, 0f))
+                    bx = t.rect.left - gap - len - pad - textW; by = cy - bh / 2f
+                    arrows.add(Arrow(t.rect.left - gap - len, cy, t.rect.left - gap, cy, 0f, 0f))
                 }
                 HelpPlace.RIGHT -> {      // 카드 오른쪽에 글자, 왼쪽의 카드를 가리킨다
-                    bx = t.rect.right + dp(56f); by = cy - bh / 2f
-                    arrows.add(Arrow(t.rect.right + dp(50f), cy, t.rect.right + dp(6f), cy, 0f, 0f))
+                    bx = t.rect.right + gap + len + pad; by = cy - bh / 2f
+                    arrows.add(Arrow(t.rect.right + gap + len, cy, t.rect.right + gap, cy, 0f, 0f))
                 }
                 HelpPlace.ABOVE -> {      // 카드 위쪽에 글자, 아래의 카드를 가리킨다
-                    bx = cx - textW / 2f; by = t.rect.top - dp(60f) - bh
-                    arrows.add(Arrow(cx, t.rect.top - dp(52f), cx, t.rect.top - dp(4f), 0f, 0f))
+                    bx = cx - textW / 2f; by = t.rect.top - gap - len - pad - bh
+                    arrows.add(Arrow(cx, t.rect.top - gap - len, cx, t.rect.top - gap, 0f, 0f))
                 }
             }
             addView(box, LayoutParams(textW, -2, Gravity.TOP or Gravity.START).apply {
