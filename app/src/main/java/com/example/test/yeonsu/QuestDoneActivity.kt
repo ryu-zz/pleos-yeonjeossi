@@ -9,6 +9,16 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.Toast
+import android.widget.TextView
+import android.graphics.Typeface
+import android.graphics.text.LineBreakConfig
+import android.os.Build
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
+import android.util.TypedValue
+import android.view.Gravity
+import androidx.core.widget.TextViewCompat
 import com.example.test.R
 /**
  * 연저씨 · 퀘스트 완료.
@@ -22,17 +32,25 @@ class QuestDoneActivity : FadeActivity() {
             setImageResource(R.drawable.yeonsu_quest_done)
             scaleType = ImageView.ScaleType.MATRIX
         }
+        // 연저씨 표정: 표정 시트 6장 중 무작위 (배경 이미지에서는 캐릭터를 지워 둠)
+        val faceIdx = savedInstanceState?.getInt("face") ?: FACES.indices.random()
+        faceIndex = faceIdx
+        val face = ImageView(this).apply {
+            setImageResource(FACES[faceIdx])
+            scaleType = ImageView.ScaleType.FIT_CENTER
+        }
         val root = FrameLayout(this).apply {
             setBackgroundColor(Color.parseColor("#EAF1FD"))
             addView(img, FrameLayout.LayoutParams(-1, -1))
+            addView(face, FrameLayout.LayoutParams(0, 0))
         }
         val spots = listOf(
             Triple(RectF(45f, 45f, 128f, 127f), "뒤로") { goTo(QuestListActivity::class.java) },
             Triple(RectF(1190f, 47f, 1270f, 125f), "홈") { goTo(HomeActivity::class.java) },
             Triple(RectF(1294f, 47f, 1374f, 125f), "설정") { soon("설정") },
             Triple(RectF(1398f, 47f, 1478f, 125f), "도움말") { soon("도움말") },
-            Triple(RectF(822f, 745f, 1184f, 852f), "다른 퀘스트") { goTo(QuestListActivity::class.java) },
-            Triple(RectF(1210f, 745f, 1478f, 852f), "기록 보기") { goTo(RecordsActivity::class.java) },
+            Triple(RectF(793f, 870f, 1155f, 977f), "다른 퀘스트") { goTo(QuestListActivity::class.java) },
+            Triple(RectF(1181f, 870f, 1449f, 977f), "기록 보기") { goTo(RecordsActivity::class.java) },
         ).map { (rect, name, action) ->
             val v = View(this).apply {
                 isClickable = true; isFocusable = true; contentDescription = name
@@ -49,6 +67,36 @@ class QuestDoneActivity : FadeActivity() {
             }
             root.addView(v, FrameLayout.LayoutParams(0, 0))
             rect to v
+        }
+        // 퀘스트마다 달라지는 문구 (이미지에서는 이 자리 글자를 지워 둠)
+        val q = QuestSession.selected()
+        val pick = Math.floorMod(q.id.hashCode(), 2)
+        val descText = (q.tip ?: COMMON_DESC[pick]).let { d ->
+            // 단어 중간에서 줄이 바뀌지 않게, 가운데에 가장 가까운 띄어쓰기에서 줄바꿈
+            if ('\n' in d) d else d.indices.filter { d[it] == ' ' }.minByOrNull { kotlin.math.abs(it - d.length / 2) }
+                ?.let { d.substring(0, it) + "\n" + d.substring(it + 1) } ?: d
+        }
+        val tipText = SpannableString("TIP. " + (QuestData.doneTips[q.name] ?: COMMON_TIP[pick])).apply {
+            setSpan(ForegroundColorSpan(Color.parseColor("#2F6BE0")), 0, 4, 0)
+            setSpan(StyleSpan(Typeface.BOLD), 0, 4, 0)
+        }
+        // 제목은 완료할 때마다 무작위 (화면 회전 등으로 다시 만들어져도 유지)
+        val titleIdx = savedInstanceState?.getInt("title") ?: TITLES.indices.random()
+        titleIndex = titleIdx
+        val title = TITLES[titleIdx]
+        val texts = listOf(
+            Triple(RectF(927f, 390f, 1425f, 495f), 0, title to Color.parseColor("#1D3878")),
+            Triple(RectF(880f, 525f, 1395f, 660f), 2, descText to Color.parseColor("#5E6D93")),
+            Triple(RectF(876f, 720f, 1419f, 772f), 1, tipText to Color.parseColor("#2D4C9E")),
+        ).map { (rect, lines, content) ->
+            val t = TextView(this).apply {
+                text = content.first; setTextColor(content.second)
+                maxLines = maxOf(lines, 1); gravity = Gravity.CENTER_VERTICAL
+                includeFontPadding = false
+                if (Build.VERSION.SDK_INT >= 33) lineBreakWordStyle = LineBreakConfig.LINE_BREAK_WORD_STYLE_PHRASE
+            }
+            root.addView(t, FrameLayout.LayoutParams(0, 0))
+            Triple(rect, t, lines)
         }
         setContentView(root)
         img.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
@@ -71,10 +119,63 @@ class QuestDoneActivity : FadeActivity() {
                     v.post { v.layoutParams = lp }
                 }
             }
+            run {
+                // 캐릭터 자리: 원본 캐릭터처럼 아래 끝이 y=900 선에 맞닿게
+                val r = RectF(-60f * sx, 170f * sy, 800f * sx, 1030f * sy)
+                m.mapRect(r)
+                val lp = face.layoutParams as FrameLayout.LayoutParams
+                val nl = r.left.toInt(); val nt = r.top.toInt(); val nw = r.width().toInt(); val nh = r.height().toInt()
+                if (lp.leftMargin != nl || lp.topMargin != nt || lp.width != nw || lp.height != nh) {
+                    lp.leftMargin = nl; lp.topMargin = nt; lp.width = nw; lp.height = nh
+                    face.post { face.layoutParams = lp }
+                }
+            }
+            texts.forEach { (src, t, lines) ->
+                val r = RectF(src.left * sx, src.top * sy, src.right * sx, src.bottom * sy)
+                m.mapRect(r)
+                val lp = t.layoutParams as FrameLayout.LayoutParams
+                val nl = r.left.toInt(); val nt = r.top.toInt(); val nw = r.width().toInt(); val nh = r.height().toInt()
+                if (lp.leftMargin != nl || lp.topMargin != nt || lp.width != nw || lp.height != nh) {
+                    lp.leftMargin = nl; lp.topMargin = nt; lp.width = nw; lp.height = nh
+                    // 원본 글자 크기에 맞추고, 길면 칸 안에 들어가도록 줄임
+                    // lines 0 = 제목(굵은 큰 글씨, 한 줄)
+                    val maxPx = (when (lines) { 0 -> 78f; 2 -> 38f; else -> 27f }) * s * sy
+                    if (lines == 0) t.typeface = Typeface.create(Typeface.DEFAULT, 900, false)
+                    t.setLineSpacing(0f, 1.5f)
+                    TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(t,
+                        (maxPx * 0.6f).toInt().coerceAtLeast(1), maxPx.toInt().coerceAtLeast(2), 1, TypedValue.COMPLEX_UNIT_PX)
+                    t.post { t.layoutParams = lp }
+                }
+            }
         }
+    }
+    private var titleIndex = 0
+    private var faceIndex = 0
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt("title", titleIndex); outState.putInt("face", faceIndex)
     }
     private fun soon(name: String) = Toast.makeText(this, "$name 화면은 준비 중이에요", Toast.LENGTH_SHORT).show()
     companion object {
+        /** UI image/연저씨 3D 스티커 포즈 모음.png 를 6장으로 나누고 배경을 지운 것 */
+        private val FACES = listOf(
+            R.drawable.yeonsu_face_0, R.drawable.yeonsu_face_1, R.drawable.yeonsu_face_2,
+            R.drawable.yeonsu_face_3, R.drawable.yeonsu_face_4, R.drawable.yeonsu_face_5,
+        )
+        /** 완료 제목 (완료할 때마다 무작위) */
+        private val TITLES = listOf(
+            "좋아, 잘 해냈어!", "제법인데, 자네!", "바로 그거야!",
+            "한 걸음 더 왔구먼!", "이제 감 잡았지?", "역시 내 제자구먼!",
+        )
+        /** 퀘스트 전용 팁이 없을 때 쓰는 공통 문구 (퀘스트마다 둘 중 하나) */
+        private val COMMON_DESC = listOf(
+            "한 단계 더 익숙해졌어!\n이 느낌 그대로 기억해 두게.",
+            "처음엔 다 어려운 법이야.\n벌써 하나 해냈잖아!",
+        )
+        private val COMMON_TIP = listOf(
+            "주행 중에는 항상 안전거리를 유지해 주세요!",
+            "출발 전엔 거울과 안전벨트를 꼭 확인해 주세요!",
+        )
         /** 터치 영역 좌표의 기준 크기 (yeonsu_quest_done.png 원본 픽셀) */
         private const val SRC_W = 1522f
         private const val SRC_H = 1096f // 원본 1033px에서 아래 배경만 늘림 (버튼 좌표는 그대로)
