@@ -182,18 +182,26 @@ class DailyFlowActivity : ScreenActivity() {
             maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
             background = rounded(Color.parseColor("#DCEAFA"), 24f); setPadding(dp(16f), dp(7f), dp(16f), dp(7f))
         }, LinearLayout.LayoutParams(-2, -2))
-        val card = LinearLayout(this).apply {
+        // 말풍선 + 꼬리(회전한 네모) + 아래에 연저씨
+        val bubbleBox = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
-            background = rounded(Color.parseColor("#F2FFFFFF"), 36f, Color.WHITE, 3f)
-            setPadding(dp(32f), dp(28f), dp(32f), dp(28f)); elevation = dp(4f).toFloat()
+            background = rounded(Color.parseColor("#F5FFFFFF"), 36f, Color.WHITE, 3f)
+            setPadding(dp(30f), dp(26f), dp(30f), dp(26f)); elevation = dp(4f).toFloat()
         }
-        card.addView(tv("길 안내 중 · $dest", 20f, Color.parseColor("#2D7653"), true).apply { gravity = Gravity.CENTER })
-        val g = tv(guideMsgs[guideIdx % guideMsgs.size], 46f, ScreenActivity.NAVY, true).apply {
+        bubbleBox.addView(tv("길 안내 중 · $dest", 19f, Color.parseColor("#2D7653"), true).apply { gravity = Gravity.CENTER })
+        val g = tv(guideMsgs[guideIdx % guideMsgs.size], 38f, ScreenActivity.NAVY, true).apply {
             gravity = Gravity.CENTER; setLineSpacing(0f, 1.25f)
         }
         guideText = g
-        card.addView(g, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(22f) })
-        root.addView(card, LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(16f) })
+        bubbleBox.addView(g, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(14f) })
+        val bubbleWrap = FrameLayout(this).apply { clipChildren = false; clipToPadding = false }
+        bubbleWrap.addView(bubbleBox, FrameLayout.LayoutParams(-1, -2))
+        val tail = android.view.View(this).apply {
+            background = rounded(Color.parseColor("#F5FFFFFF"), 8f); rotation = 45f
+        }
+        bubbleWrap.addView(tail, FrameLayout.LayoutParams(dp(36f), dp(36f), Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = -dp(16f) })
+        root.addView(bubbleWrap, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(18f) })
+        root.addView(pose(0), LinearLayout.LayoutParams(-1, 0, 1f).apply { topMargin = dp(10f) })
         val bar = LinearLayout(this).apply { gravity = Gravity.CENTER }
         bar.addView(button("내비 열기", primary = false) { openNavi(flow) })
         bar.addView(button("도착했다고 치기") { QuestFlow.stage = QuestFlow.ARRIVED; refresh() },
