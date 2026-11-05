@@ -9,7 +9,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 /** 도움말에서 가리킬 대상 하나: 화면 위 사각형(rect), 제목, 설명. 글자는 대상 아래에 놓고 화살표로 대상을 가리킨다. */
-enum class HelpPlace { OVER_MID, LEFT, RIGHT, ABOVE }
+enum class HelpPlace { OVER_MID, LEFT, RIGHT, ABOVE, BELOW }
 /** frac: 글자를 놓을 세로 위치(대상 높이의 비율). */
 class HelpTarget(val rect: RectF, val title: String, val body: String, val place: HelpPlace = HelpPlace.OVER_MID, val frac: Float = 0.5f)
 
@@ -70,6 +70,10 @@ class HelpOverlay(
                 HelpPlace.RIGHT -> {      // 카드 오른쪽에 글자, 왼쪽의 카드를 가리킨다
                     bx = t.rect.right + gap + len + pad; by = cy - bh / 2f
                     arrows.add(Arrow(t.rect.right + gap + len, cy, t.rect.right + gap, cy, 0f, 0f))
+                }
+                HelpPlace.BELOW -> {      // 카드 아래쪽에 글자, 위의 카드를 가리킨다
+                    bx = cx - textW / 2f; by = t.rect.bottom + gap + len + pad
+                    arrows.add(Arrow(cx, t.rect.bottom + gap + len, cx, t.rect.bottom + gap, 0f, 0f))
                 }
                 HelpPlace.ABOVE -> {      // 카드 위쪽에 글자, 아래의 카드를 가리킨다
                     bx = cx - textW / 2f; by = t.rect.top - gap - len - pad - bh

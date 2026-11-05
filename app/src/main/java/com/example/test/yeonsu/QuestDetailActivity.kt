@@ -3,6 +3,7 @@ package com.example.test.yeonsu
 import android.app.Activity
 import android.graphics.Color
 import android.view.Gravity
+import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -57,7 +58,16 @@ class QuestDetailActivity : ScreenActivity() {
         try { vehicle?.release() } catch (_: Throwable) {}
         super.onDestroy()
     }
+    private var primaryBtn: View? = null
+    override fun helpHeadline() = "퀘스트 화면이에요"
+    override fun helpItems(): List<HelpItem>? {
+        val b = primaryBtn ?: return null
+        if (success) return null
+        val label = (b as? android.widget.TextView)?.text ?: "계속하기"
+        return listOf(HelpItem(b, "퀘스트 하는 법", "$label 버튼을 누르고,\n퀘스트를 수행해보세요!", HelpPlace.ABOVE))
+    }
     override fun build(content: FrameLayout, w: Int, h: Int) {
+        primaryBtn = null
         val q = QuestSession.selected()
         val s = store.state(q)
         val cats = QuestData.cats.getValue(QuestSession.type)
@@ -94,10 +104,11 @@ class QuestDetailActivity : ScreenActivity() {
                 LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(14f) })
         } else {
             val label = when (s.status) { "doing" -> "계속하기"; "done" -> "다시 해보기"; else -> "퀘스트 시작" }
-            actions.addView(button(label) {
+            primaryBtn = button(label) {
                 if (s.status == "doing") Toast.makeText(this, "이미 진행 중이에요. ${q.desc}", Toast.LENGTH_SHORT).show()
                 else { store.start(q); refresh() }
-            })
+            }
+            actions.addView(primaryBtn)
             actions.addView(button("중단", primary = false, enabled = s.status == "doing") {
                 store.stop(q); refresh()
                 Toast.makeText(this, "퀘스트를 중단했어요. 완료 기록은 추가하지 않았어요.", Toast.LENGTH_SHORT).show()
