@@ -7,6 +7,10 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
+import ai.pleos.playground.vehicle.Vehicle
+import ai.pleos.playground.vehicle.api.model.area.SeatArea
+import ai.pleos.playground.vehicle.constant.area.SeatValue
+import ai.pleos.playground.vehicle.listener.SeatForeAftPositionListener
 
 /**
  * 연저씨 · 퀘스트 상세/진행/완료 (HTML detail.js, success).
@@ -16,6 +20,58 @@ class QuestDetailActivity : ScreenActivity() {
     override val parentScreen: Class<out Activity> = QuestListActivity::class.java
     private val store by lazy { QuestStore(this) }
     private var success = false
+
+    // ── 실제 차량 신호: "운전석 앞뒤 조절" 퀘스트는 운전석 앞뒤 위치가 바뀌면 자동 완료 ──
+    private var vehicle: Vehicle? = null
+    private val driver = SeatArea(SeatValue.ROW_1_LEFT)
+    private var lastPos: Int? = null
+    private var seatConnected = false
+    private val seatListener = object : SeatForeAftPositionListener {
+        override fun onSeatForeAftPositionUpdated(position: Int?) {
+            android.util.Log.d("YeonsuSeat", "foreAft=$position last=$lastPos")
+            runOnUiThread { onSeatPosition(position) }
+        }
+        override fun onFailed(e: Exception) { android.util.Log.e("YeonsuSeat", "구독 실패 $e") }
+    }
+    private fun onSeatPosition(pos: Int?) {
+        val before = lastPos
+        if (pos != null) lastPos = pos
+        val q = QuestSession.selected()
+        if (q.name != SEAT_QUEST || success || pos == null || before == null || pos == before) return
+        if (store.state(q).status != "doing") return
+        if (store.advance(q)) { success = true; refresh() }
+    }
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (QuestSession.selected().name != SEAT_QUEST) return
+        try {
+            val v = Vehicle(applicationContext).also { it.initialize() }
+            vehicle = v
+            val seat = v.getSeat()
+            seat.getCurrentSeatForeAftPosition(driver, { lastPos = it; android.util.Log.d("YeonsuSeat", "초기 foreAft=$it"); seatConnected = true; runOnUiThread { refresh() } },
+                { android.util.Log.e("YeonsuSeat", "읽기 실패 $it") })
+            seat.registerSeatForeAftPosition(driver, seatListener)
+            poll.postDelayed(pollTick, 1000)
+        } catch (e: Throwable) { android.util.Log.e("YeonsuSeat", "차량 연결 실패 $e") }
+    }
+    // 구독 신호가 오지 않는 경우를 대비해 1초마다 현재 값을 직접 읽어 비교한다.
+    private val poll = android.os.Handler(android.os.Looper.getMainLooper())
+    private val pollTick = object : Runnable {
+        override fun run() {
+            if (success) return
+            try {
+                vehicle?.getSeat()?.getCurrentSeatForeAftPosition(driver,
+                    { p -> android.util.Log.d("YeonsuSeat", "poll foreAft=$p"); runOnUiThread { onSeatPosition(p) } },
+                    { android.util.Log.e("YeonsuSeat", "poll 실패 $it") })
+            } catch (_: Throwable) {}
+            poll.postDelayed(this, 1000)
+        }
+    }
+    override fun onDestroy() {
+        poll.removeCallbacks(pollTick)
+        try { vehicle?.getSeat()?.unregisterSeatForeAftPosition(driver, seatListener); vehicle?.release() } catch (_: Throwable) {}
+        super.onDestroy()
+    }
 
     override fun build(content: FrameLayout, w: Int, h: Int) {
         val q = QuestSession.selected()
@@ -63,6 +119,9 @@ class QuestDetailActivity : ScreenActivity() {
         panel.addView(actions)
 
         if (!success && s.status == "doing") {
+            if (q.name == SEAT_QUEST) panel.addView(tv(
+                if (seatConnected) "차량 연결됨 · 운전석 시트를 앞뒤로 움직이면 자동으로 완료돼요" else "차량 연결 중…", 18f, Color.parseColor("#2D7653"), true
+            ).apply { setPadding(0, dp(18f), 0, 0) })
             panel.addView(tv("미리보기 조작 · 실제 차량 조작이 아닙니다", 16f, Color.parseColor("#758298")).apply { setPadding(0, dp(22f), 0, dp(8f)) })
             panel.addView(tv((if (q.tip != null) "동작을 마쳤다고 치기" else q.steps[s.step]) + "　→", 22f, ScreenActivity.NAVY).apply {
                 background = rounded(Color.parseColor("#DFEBFA"), 16f); setPadding(dp(20f), dp(14f), dp(20f), dp(14f))
@@ -122,4 +181,5 @@ class QuestDetailActivity : ScreenActivity() {
         }
         content.addView(root, FrameLayout.LayoutParams(-1, -1))
     }
+    companion object { private const val SEAT_QUEST = "운전석 앞뒤 조절" }
 }
