@@ -11,6 +11,9 @@ import ai.pleos.playground.vehicle.Vehicle
 import ai.pleos.playground.vehicle.api.model.area.SeatArea
 import ai.pleos.playground.vehicle.constant.area.SeatValue
 import ai.pleos.playground.vehicle.listener.SeatForeAftPositionListener
+import ai.pleos.playground.vehicle.api.model.area.DoorArea
+import ai.pleos.playground.vehicle.constant.area.DoorValue
+import ai.pleos.playground.vehicle.listener.DoorPositionListener
 
 /**
  * 연저씨 · 퀘스트 상세/진행/완료 (HTML detail.js, success).
@@ -43,7 +46,9 @@ class QuestDetailActivity : ScreenActivity() {
     }
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
-        if (QuestSession.selected().name != SEAT_QUEST) return
+        val qn = QuestSession.selected().name
+        if (qn == TRUNK_QUEST) { initTrunk(); return }
+        if (qn != SEAT_QUEST) return
         try {
             val v = Vehicle(applicationContext).also { it.initialize() }
             vehicle = v
@@ -54,11 +59,49 @@ class QuestDetailActivity : ScreenActivity() {
             poll.postDelayed(pollTick, 1000)
         } catch (e: Throwable) { android.util.Log.e("YeonsuSeat", "차량 연결 실패 $e") }
     }
+    // ── "트렁크" 퀘스트: 뒷문(트렁크) 위치 값이 닫힘(0) → 열림(0보다 큼)으로 바뀌면 자동 완료 ──
+    private val trunk = DoorArea(DoorValue.REAR)
+    private var lastTrunk: Int? = null
+    private val trunkListener = object : DoorPositionListener {
+        override fun onPositionUpdated(pos: Int?) {
+            android.util.Log.d("YeonsuTrunk", "event pos=$pos last=$lastTrunk")
+            runOnUiThread { onTrunk(pos) }
+        }
+        override fun onFailed(e: Exception) { android.util.Log.e("YeonsuTrunk", "구독 실패 $e") }
+    }
+    private fun onTrunk(pos: Int?) {
+        val before = lastTrunk
+        if (pos != null) lastTrunk = pos
+        val q = QuestSession.selected()
+        if (q.name != TRUNK_QUEST || success || pos == null || before == null) return
+        if (before <= 0 && pos > 0 && store.state(q).status == "doing") {
+            if (store.advance(q)) { success = true; refresh() }
+        }
+    }
+    private fun initTrunk() {
+        try {
+            val v = Vehicle(applicationContext).also { it.initialize() }
+            vehicle = v
+            val door = v.getDoor()
+            door.getCurrentDoorPosition(trunk, { lastTrunk = it; android.util.Log.d("YeonsuTrunk", "초기 pos=$it"); seatConnected = true; runOnUiThread { refresh() } },
+                { android.util.Log.e("YeonsuTrunk", "읽기 실패 $it") })
+            door.registerDoorPosition(trunk, trunkListener)
+            poll.postDelayed(pollTick, 1000)
+        } catch (e: Throwable) { android.util.Log.e("YeonsuTrunk", "차량 연결 실패 $e") }
+    }
     // 구독 신호가 오지 않는 경우를 대비해 1초마다 현재 값을 직접 읽어 비교한다.
     private val poll = android.os.Handler(android.os.Looper.getMainLooper())
     private val pollTick = object : Runnable {
         override fun run() {
             if (success) return
+            if (QuestSession.selected().name == TRUNK_QUEST) {
+                try {
+                    vehicle?.getDoor()?.getCurrentDoorPosition(trunk,
+                        { p -> android.util.Log.d("YeonsuTrunk", "poll pos=$p"); runOnUiThread { onTrunk(p) } },
+                        { android.util.Log.e("YeonsuTrunk", "poll 실패 $it") })
+                } catch (_: Throwable) {}
+                poll.postDelayed(this, 1000); return
+            }
             try {
                 vehicle?.getSeat()?.getCurrentSeatForeAftPosition(driver,
                     { p -> android.util.Log.d("YeonsuSeat", "poll foreAft=$p"); runOnUiThread { onSeatPosition(p) } },
@@ -69,7 +112,7 @@ class QuestDetailActivity : ScreenActivity() {
     }
     override fun onDestroy() {
         poll.removeCallbacks(pollTick)
-        try { vehicle?.getSeat()?.unregisterSeatForeAftPosition(driver, seatListener); vehicle?.release() } catch (_: Throwable) {}
+        try { vehicle?.getSeat()?.unregisterSeatForeAftPosition(driver, seatListener); vehicle?.getDoor()?.unregisterDoorPosition(trunk, trunkListener); vehicle?.release() } catch (_: Throwable) {}
         super.onDestroy()
     }
 
@@ -110,7 +153,10 @@ class QuestDetailActivity : ScreenActivity() {
                 LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(14f) })
         } else {
             val label = when (s.status) { "doing" -> "계속하기"; "done" -> "다시 해보기"; else -> "퀘스트 시작" }
-            actions.addView(button(label) { store.start(q); refresh() })
+            actions.addView(button(label) {
+                if (s.status == "doing") Toast.makeText(this, "이미 진행 중이에요. ${q.desc}", Toast.LENGTH_SHORT).show()
+                else { store.start(q); refresh() }
+            })
             actions.addView(button("중단", primary = false, enabled = s.status == "doing") {
                 store.stop(q); refresh()
                 Toast.makeText(this, "퀘스트를 중단했어요. 완료 기록은 추가하지 않았어요.", Toast.LENGTH_SHORT).show()
@@ -119,8 +165,8 @@ class QuestDetailActivity : ScreenActivity() {
         panel.addView(actions)
 
         if (!success && s.status == "doing") {
-            if (q.name == SEAT_QUEST) panel.addView(tv(
-                if (seatConnected) "차량 연결됨 · 운전석 시트를 앞뒤로 움직이면 자동으로 완료돼요" else "차량 연결 중…", 18f, Color.parseColor("#2D7653"), true
+            if (q.name == SEAT_QUEST || q.name == TRUNK_QUEST) panel.addView(tv(
+                if (!seatConnected) "차량 연결 중…" else if (q.name == TRUNK_QUEST) "차량 연결됨 · 트렁크를 열면 자동으로 완료돼요 (이미 열려 있으면 닫았다가 다시 열어요)" else "차량 연결됨 · 운전석 시트를 앞뒤로 움직이면 자동으로 완료돼요", 18f, Color.parseColor("#2D7653"), true
             ).apply { setPadding(0, dp(18f), 0, 0) })
             panel.addView(tv("미리보기 조작 · 실제 차량 조작이 아닙니다", 16f, Color.parseColor("#758298")).apply { setPadding(0, dp(22f), 0, dp(8f)) })
             panel.addView(tv((if (q.tip != null) "동작을 마쳤다고 치기" else q.steps[s.step]) + "　→", 22f, ScreenActivity.NAVY).apply {
@@ -181,5 +227,5 @@ class QuestDetailActivity : ScreenActivity() {
         }
         content.addView(root, FrameLayout.LayoutParams(-1, -1))
     }
-    companion object { private const val SEAT_QUEST = "운전석 앞뒤 조절" }
+    companion object { private const val SEAT_QUEST = "운전석 앞뒤 조절"; private const val TRUNK_QUEST = "트렁크" }
 }
