@@ -9,6 +9,7 @@ import android.widget.ScrollView
 import android.widget.Toast
 import com.example.test.yeonsu.door.DoorQuestController
 import com.example.test.yeonsu.headlamp.HeadlampQuestController
+import com.example.test.yeonsu.highbeam.HighBeamQuestController
 import com.example.test.yeonsu.signal.TurnSignalQuestController
 
 /**
@@ -30,12 +31,15 @@ class QuestDetailActivity : ScreenActivity() {
     private val isDoorQuest: Boolean get() = DoorQuestController.isDoorQuest(QuestSession.selected().id)
     /** 하향등 신호로 판정하는 퀘스트인지(하향등). */
     private val isHeadlampQuest: Boolean get() = HeadlampQuestController.isHeadlampQuest(QuestSession.selected().id)
-    /** 차량 신호(방향지시등·문·하향등)로 판정하는 퀘스트인지. */
-    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest
+    /** 상향등 신호로 판정하는 퀘스트인지(상향등 켜기/끄기). */
+    private val isHighBeamQuest: Boolean get() = HighBeamQuestController.isHighBeamQuest(QuestSession.selected().id)
+    /** 차량 신호(방향지시등·문·하향등·상향등)로 판정하는 퀘스트인지. */
+    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest || isHighBeamQuest
 
     private var controller: TurnSignalQuestController? = null
     private var doorController: DoorQuestController? = null
     private var headlampController: HeadlampQuestController? = null
+    private var highBeamController: HighBeamQuestController? = null
     /** 차량 신호 경로에서 화면에 보여줄 현재 단계 안내/사유. */
     private var signalGuide: String? = null
     private var signalError: String? = null
@@ -91,6 +95,7 @@ class QuestDetailActivity : ScreenActivity() {
                 val hint = when {
                     isDoorQuest -> "차량 신호로 확인하는 퀘스트예요 · 운전석 문을 직접 조작하세요"
                     isHeadlampQuest -> "차량 신호로 확인하는 퀘스트예요 · 전조등을 직접 조작하세요"
+                    isHighBeamQuest -> "차량 신호로 확인하는 퀘스트예요 · 상향등을 직접 조작하세요"
                     else -> "차량 신호로 확인하는 퀘스트예요 · 방향지시등을 직접 조작하세요"
                 }
                 panel.addView(tv(hint, 16f, Color.parseColor("#758298"))
@@ -150,6 +155,7 @@ class QuestDetailActivity : ScreenActivity() {
             isTurnSignalQuest -> startSignal(q)
             isDoorQuest -> startDoor(q)
             isHeadlampQuest -> startHeadlamp(q)
+            isHighBeamQuest -> startHighBeam(q)
         }
         refresh()
     }
@@ -159,6 +165,7 @@ class QuestDetailActivity : ScreenActivity() {
             isTurnSignalQuest -> stopSignal()
             isDoorQuest -> stopDoor()
             isHeadlampQuest -> stopHeadlamp()
+            isHighBeamQuest -> stopHighBeam()
         }
         store.stop(q)
         refresh()
@@ -237,9 +244,34 @@ class QuestDetailActivity : ScreenActivity() {
         headlampController = null
     }
 
+    // ───── 상향등 경로 ─────
+    private fun startHighBeam(q: Quest) {
+        signalError = null
+        if (highBeamController != null) return
+        val kind = HighBeamQuestController.questKind(q.id) ?: return
+        highBeamController = HighBeamQuestController(applicationContext, object : HighBeamQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    // 완료 기록은 1건만. completeVerified 가 중복을 막고, 그 뒤 컨트롤러를 내려 추가 콜백을 차단한다.
+                    store.completeVerified(q)
+                    stopHighBeam()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }, kind).also { it.start() }
+    }
+
+    private fun stopHighBeam() {
+        highBeamController?.stop()
+        highBeamController = null
+    }
+
     override fun onStop() {
         // 화면을 떠나면 구독 해제. 중단/이탈 후 도착하는 콜백은 컨트롤러가 무시한다.
-        if (!success) { stopSignal(); stopDoor(); stopHeadlamp() }
+        if (!success) { stopSignal(); stopDoor(); stopHeadlamp(); stopHighBeam() }
         super.onStop()
     }
 
@@ -247,6 +279,7 @@ class QuestDetailActivity : ScreenActivity() {
         stopSignal()
         stopDoor()
         stopHeadlamp()
+        stopHighBeam()
         super.onDestroy()
     }
 }
