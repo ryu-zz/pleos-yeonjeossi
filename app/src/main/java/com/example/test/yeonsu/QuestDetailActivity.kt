@@ -7,15 +7,28 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
+import com.example.test.yeonsu.signal.TurnSignalQuestController
 
 /**
  * 연저씨 · 퀘스트 상세/진행/완료 (HTML detail.js, success).
- * 아래쪽 "미리보기 조작"은 화면 확인용이다. 실제 차량 조작을 판정하지 않으며, 이후 SDK 관찰값으로 대체한다.
+ *
+ * 두 가지 완료 경로가 있다.
+ * 1) 미리보기 경로(대부분 퀘스트): 아래쪽 "동작을 마쳤다고 치기" 버튼으로 완료. 실제 차량 조작을 판정하지 않는다.
+ * 2) 차량 신호 경로(왼쪽 방향지시등, id=vehicle-1-0): Vehicle SDK 의 방향지시등 신호
+ *    OFF→LEFT→OFF 를 확인해야만 완료된다. 이 경로에서는 "동작을 마쳤다고 치기" 버튼을 제공하지 않는다.
  */
 class QuestDetailActivity : ScreenActivity() {
     override val parentScreen: Class<out Activity> = QuestListActivity::class.java
     private val store by lazy { QuestStore(this) }
     private var success = false
+
+    /** 차량 신호로 판정하는 퀘스트인지. */
+    private val isSignalQuest get() = QuestSession.selected().id == TurnSignalQuestController.QUEST_ID
+
+    private var controller: TurnSignalQuestController? = null
+    /** 차량 신호 경로에서 화면에 보여줄 현재 단계 안내/사유. */
+    private var signalGuide: String? = null
+    private var signalError: String? = null
 
     override fun build(content: FrameLayout, w: Int, h: Int) {
         val q = QuestSession.selected()
@@ -54,21 +67,38 @@ class QuestDetailActivity : ScreenActivity() {
                 LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(14f) })
         } else {
             val label = when (s.status) { "doing" -> "계속하기"; "done" -> "다시 해보기"; else -> "퀘스트 시작" }
-            actions.addView(button(label) { store.start(q); refresh() })
+            actions.addView(button(label) { startQuest(q) })
             actions.addView(button("중단", primary = false, enabled = s.status == "doing") {
-                store.stop(q); refresh()
+                stopQuest(q)
                 Toast.makeText(this, "퀘스트를 중단했어요. 완료 기록은 추가하지 않았어요.", Toast.LENGTH_SHORT).show()
             }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(14f) })
         }
         panel.addView(actions)
 
         if (!success && s.status == "doing") {
-            panel.addView(tv("미리보기 조작 · 실제 차량 조작이 아닙니다", 16f, Color.parseColor("#758298")).apply { setPadding(0, dp(22f), 0, dp(8f)) })
-            panel.addView(tv((if (q.tip != null) "동작을 마쳤다고 치기" else q.steps[s.step]) + "　→", 22f, ScreenActivity.NAVY).apply {
-                background = rounded(Color.parseColor("#DFEBFA"), 16f); setPadding(dp(20f), dp(14f), dp(20f), dp(14f))
-                isClickable = true; isFocusable = true
-                setOnClickListener { if (store.advance(q)) success = true; refresh() }
-            }, LinearLayout.LayoutParams(-2, -2))
+            if (isSignalQuest) {
+                // 차량 신호 경로: 현재 단계/사유만 보여주고 수동 완료 버튼은 제공하지 않는다.
+                panel.addView(tv("차량 신호로 확인하는 퀘스트예요 · 방향지시등을 직접 조작하세요", 16f, Color.parseColor("#758298"))
+                    .apply { setPadding(0, dp(22f), 0, dp(8f)) })
+                signalGuide?.let { g ->
+                    panel.addView(tv(g, 22f, ScreenActivity.NAVY, true).apply {
+                        background = rounded(Color.parseColor("#DFEBFA"), 16f); setPadding(dp(20f), dp(16f), dp(20f), dp(16f)); setLineSpacing(0f, 1.2f)
+                    }, LinearLayout.LayoutParams(-1, -2))
+                }
+                signalError?.let { e ->
+                    panel.addView(tv(e, 20f, Color.parseColor("#B23B3B"), true).apply {
+                        background = rounded(Color.parseColor("#FBE3E3"), 16f); setPadding(dp(20f), dp(14f), dp(20f), dp(14f))
+                    }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10f) })
+                }
+            } else {
+                // 미리보기 경로(기존 기능 유지).
+                panel.addView(tv("미리보기 조작 · 실제 차량 조작이 아닙니다", 16f, Color.parseColor("#758298")).apply { setPadding(0, dp(22f), 0, dp(8f)) })
+                panel.addView(tv((if (q.tip != null) "동작을 마쳤다고 치기" else q.steps[s.step]) + "　→", 22f, ScreenActivity.NAVY).apply {
+                    background = rounded(Color.parseColor("#DFEBFA"), 16f); setPadding(dp(20f), dp(14f), dp(20f), dp(14f))
+                    isClickable = true; isFocusable = true
+                    setOnClickListener { if (store.advance(q)) success = true; refresh() }
+                }, LinearLayout.LayoutParams(-2, -2))
+            }
         }
 
         val scroll = ScrollView(this).apply { addView(panel); isVerticalScrollBarEnabled = false }
@@ -96,5 +126,53 @@ class QuestDetailActivity : ScreenActivity() {
             root.addView(scroll, LinearLayout.LayoutParams(0, -2, 0.60f).apply { leftMargin = dp(24f) })
         }
         content.addView(root, FrameLayout.LayoutParams(-1, -1))
+    }
+
+    // ───── 시작/중단 분기 ─────
+    private fun startQuest(q: Quest) {
+        store.start(q)
+        if (isSignalQuest) startSignal(q)
+        refresh()
+    }
+
+    private fun stopQuest(q: Quest) {
+        if (isSignalQuest) stopSignal()
+        store.stop(q)
+        refresh()
+    }
+
+    // ───── 차량 신호 경로 ─────
+    private fun startSignal(q: Quest) {
+        signalError = null
+        if (controller != null) return
+        controller = TurnSignalQuestController(applicationContext, object : TurnSignalQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    // 완료 기록은 1건만. completeVerified 가 중복을 막고, 그 뒤 컨트롤러를 내려 추가 콜백을 차단한다.
+                    store.completeVerified(q)
+                    stopSignal()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }).also { it.start() }
+    }
+
+    private fun stopSignal() {
+        controller?.stop()
+        controller = null
+    }
+
+    override fun onStop() {
+        // 화면을 떠나면 구독 해제. 중단/이탈 후 도착하는 콜백은 컨트롤러가 무시한다.
+        if (!success) stopSignal()
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        stopSignal()
+        super.onDestroy()
     }
 }
