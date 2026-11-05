@@ -23,14 +23,10 @@
         android:roundIcon="@mipmap/ic_yeonsu_round"
         android:theme="@style/Theme.Test">
 
+        <!-- 옛 SDK 연결 확인 화면: 앱 목록에는 나타나지 않게 런처 등록을 뺐다(내비 연동 코드가 이 이름으로 호출하지 않음) -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false" />
 
         <!-- 연저씨 · 로딩 화면 (앱 목록의 연저씨 아이콘이 여는 화면, 약 1초 후 시작 화면) -->
         <activity
@@ -114,12 +110,6 @@
             android:exported="false"
             android:resizeableActivity="true"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|density"
-            android:theme="@style/Theme.Yeonsu"
-            android:label="연저씨" />
-        <!-- 연저씨 · 첫 탑승 세팅 (아직 메인 화면과 연결하지 않음) -->
-        <activity
-            android:name=".yeonsu.FirstRideActivity"
-            android:exported="true"
             android:theme="@style/Theme.Yeonsu"
             android:label="연저씨" />
     </application>
