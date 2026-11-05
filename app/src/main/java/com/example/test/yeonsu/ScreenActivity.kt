@@ -2,6 +2,7 @@ package com.example.test.yeonsu
 
 import android.app.Activity
 import android.graphics.Color
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -91,10 +92,34 @@ abstract class ScreenActivity : FadeActivity() {
         listOf(R.drawable.ic_y_home to "홈", R.drawable.ic_y_settings to "설정", R.drawable.ic_y_help to "도움말").forEach { (ic, name) ->
             row.addView(iconButton(ic, 56f) {
                 if (name == "홈") goTo(HomeActivity::class.java)
+                else if (name == "도움말" && helpItems() != null) showHelp()
                 else Toast.makeText(this, "$name 화면은 준비 중이에요", Toast.LENGTH_SHORT).show()
             }, LinearLayout.LayoutParams(dp(56f), dp(56f)).apply { leftMargin = dp(12f) })
         }
         return row
+    }
+
+    // ───── 도움말 ─────
+    /** 도움말에서 가리킬 항목. 화면마다 override 한다. null이면 "준비 중" 안내만 보여준다. */
+    protected class HelpItem(val view: View, val title: String, val body: String, val place: HelpPlace = HelpPlace.OVER_MID)
+    protected open fun helpHeadline(): String = "도움말"
+    protected open fun helpItems(): List<HelpItem>? = null
+    private var helpOverlay: HelpOverlay? = null
+    private fun showHelp() {
+        if (helpOverlay != null) return
+        val items = helpItems() ?: return
+        val rl = IntArray(2); root.getLocationInWindow(rl)
+        val targets = items.map { it2 ->
+            val l = IntArray(2); it2.view.getLocationInWindow(l)
+            val x = (l[0] - rl[0]).toFloat(); val y = (l[1] - rl[1]).toFloat()
+            // 좁은 화면(1/3)에서는 왼쪽 공간이 없으므로 카드 위쪽에 놓는다
+            val place = if (compact && it2.place == HelpPlace.LEFT) HelpPlace.ABOVE else it2.place
+            HelpTarget(RectF(x, y, x + it2.view.width, y + it2.view.height), it2.title, it2.body, place)
+        }
+        val o = HelpOverlay(this, k, helpHeadline(), "화면을 누르면 닫혀요", targets) { helpOverlay = null }
+        helpOverlay = o
+        root.addView(o, FrameLayout.LayoutParams(-1, -1))
+        o.elevation = dp(100f).toFloat()
     }
 
     // ───── 공통 부품 ─────

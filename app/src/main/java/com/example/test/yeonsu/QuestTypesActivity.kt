@@ -11,6 +11,17 @@ import android.widget.LinearLayout
 class QuestTypesActivity : ScreenActivity() {
     override val parentScreen: Class<out Activity> = HomeActivity::class.java
 
+    private var vehicleCard: View? = null
+    private var dailyCard: View? = null
+    override fun helpHeadline() = "퀘스트 종류를 고르는 화면이에요"
+    override fun helpItems(): List<HelpItem>? {
+        val v = vehicleCard ?: return null; val d = dailyCard ?: return null
+        return listOf(
+            HelpItem(v, "차량 퀘스트", "차 기본 조작을 하나씩 따라 해요\n일부는 조작하면 자동으로 알아봐요", HelpPlace.LEFT),
+            HelpItem(d, "일상 퀘스트", "주유소·주차·고속도로 같은\n상황별 미션으로 연습해요", HelpPlace.LEFT),
+        )
+    }
+
     override fun build(content: FrameLayout, w: Int, h: Int) {
         val guide = LinearLayout(this).apply { orientation = if (compact) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL; gravity = Gravity.CENTER }
         val bubble = bubble("자네, 퀘스트에", "도전해보겠나?", if (compact) 30f else 40f)
@@ -24,10 +35,10 @@ class QuestTypesActivity : ScreenActivity() {
         }
 
         val cards = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
-        cards.addView(typeCard("차량 퀘스트", "차 기본 조작을 까먹었다고? 차근차근 따라해보자!", "#E5F2FF", "#CBDFF7", "vehicle"),
-            LinearLayout.LayoutParams(-1, -2))
-        cards.addView(typeCard("일상 퀘스트", "연저씨가 옆에서 하나하나 다 알려줄게", "#EFFBF2", "#D2ECDA", "daily"),
-            LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(24f) })
+        vehicleCard = typeCard("차량 퀘스트", "차 기본 조작을 까먹었다고? 차근차근 따라해보자!", "#E5F2FF", "#CBDFF7", "vehicle")
+        dailyCard = typeCard("일상 퀘스트", "연저씨가 옆에서 하나하나 다 알려줄게", "#EFFBF2", "#D2ECDA", "daily")
+        cards.addView(vehicleCard, LinearLayout.LayoutParams(-1, -2))
+        cards.addView(dailyCard, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(24f) })
 
         val root = LinearLayout(this).apply {
             orientation = if (compact) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL

@@ -9,7 +9,8 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 /** 도움말에서 가리킬 대상 하나: 화면 위 사각형(rect), 제목, 설명. 글자는 대상 아래에 놓고 화살표로 대상을 가리킨다. */
-class HelpTarget(val rect: RectF, val title: String, val body: String)
+enum class HelpPlace { OVER_MID, LEFT, ABOVE }
+class HelpTarget(val rect: RectF, val title: String, val body: String, val place: HelpPlace = HelpPlace.OVER_MID)
 
 /**
  * 도움말 화면. 화면 전체를 어둡게 덮고, 흰 글씨 설명과 흰 화살표로 대상을 가리킨다.
@@ -31,7 +32,7 @@ class HelpOverlay(
         includeFontPadding = false; gravity = Gravity.CENTER_HORIZONTAL
     }
 
-    private class Arrow(val sx: Float, val sy: Float, val ex: Float, val ey: Float, val bend: Float)
+    private class Arrow(val sx: Float, val sy: Float, val ex: Float, val ey: Float, val bendX: Float, val bendY: Float)
     private val arrows = ArrayList<Arrow>()
 
     init {
@@ -44,18 +45,33 @@ class HelpOverlay(
         addView(head, LayoutParams(-2, -2, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = dp(24f) })
 
         targets.forEachIndexed { i, t ->
-            val cx = t.rect.centerX()
-            val textW = minOf(dp(380f), (t.rect.width() - dp(24f)).toInt())
+            val cx = t.rect.centerX(); val cy = t.rect.centerY()
+            val maxW = if (t.place == HelpPlace.OVER_MID) (t.rect.width() - dp(24f)).toInt() else dp(420f)
+            val textW = minOf(dp(380f), maxW)
             val box = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
             box.addView(tv(t.title, 32f, Color.WHITE, true))
             box.addView(tv(t.body, 20f, Color.WHITE, false).apply { setPadding(0, dp(8f), 0, 0); setLineSpacing(0f, 1.25f) })
-            // 카드 위, 중간쯤에 글자를 놓고, 글자 위에서 카드 제목 쪽으로 화살표를 올린다
-            val textTop = t.rect.top + t.rect.height() * 0.50f
-            addView(box, LayoutParams(textW, -2, Gravity.TOP or Gravity.START).apply {
-                leftMargin = (cx - textW / 2f).toInt(); topMargin = textTop.toInt()
-            })
+            box.measure(MeasureSpec.makeMeasureSpec(textW, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED))
+            val bh = box.measuredHeight
             val bend = if (i % 2 == 0) -dp(40f).toFloat() else dp(40f).toFloat()
-            arrows.add(Arrow(cx + bend * 0.3f, textTop - dp(14f), cx, t.rect.top + t.rect.height() * 0.30f, bend))
+            val bx: Float; val by: Float
+            when (t.place) {
+                HelpPlace.OVER_MID -> {   // 카드 위 중간에 글자, 글자 위에서 카드 제목 쪽으로 화살표
+                    bx = cx - textW / 2f; by = t.rect.top + t.rect.height() * 0.50f
+                    arrows.add(Arrow(cx + bend * 0.3f, by - dp(14f), cx, t.rect.top + t.rect.height() * 0.30f, bend, 0f))
+                }
+                HelpPlace.LEFT -> {       // 카드 왼쪽에 글자, 오른쪽의 카드를 가리킨다
+                    bx = t.rect.left - dp(90f) - textW; by = cy - bh / 2f
+                    arrows.add(Arrow(t.rect.left - dp(78f), cy + dp(10f), t.rect.left - dp(6f), cy, 0f, -bend * 0.8f))
+                }
+                HelpPlace.ABOVE -> {      // 카드 위쪽에 글자, 아래의 카드를 가리킨다
+                    bx = cx - textW / 2f; by = t.rect.top - dp(60f) - bh
+                    arrows.add(Arrow(cx + bend * 0.3f, t.rect.top - dp(52f), cx, t.rect.top - dp(4f), bend, 0f))
+                }
+            }
+            addView(box, LayoutParams(textW, -2, Gravity.TOP or Gravity.START).apply {
+                leftMargin = bx.toInt().coerceAtLeast(dp(8f)); topMargin = by.toInt().coerceAtLeast(dp(80f))
+            })
         }
         alpha = 0f
         animate().alpha(1f).setDuration(220).start()
@@ -76,10 +92,10 @@ class HelpOverlay(
     override fun onDraw(canvas: Canvas) {
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), dim)
         arrows.forEach { a ->
-            val p = Path().apply { moveTo(a.sx, a.sy); quadTo((a.sx + a.ex) / 2f + a.bend, (a.sy + a.ey) / 2f, a.ex, a.ey) }
+            val p = Path().apply { moveTo(a.sx, a.sy); quadTo((a.sx + a.ex) / 2f + a.bendX, (a.sy + a.ey) / 2f + a.bendY, a.ex, a.ey) }
             canvas.drawPath(p, line)
             // 화살촉: 끝점에서 휜 방향의 반대로 두 갈래
-            val cxp = (a.sx + a.ex) / 2f + a.bend; val cyp = (a.sy + a.ey) / 2f
+            val cxp = (a.sx + a.ex) / 2f + a.bendX; val cyp = (a.sy + a.ey) / 2f + a.bendY
             val ang = Math.atan2((a.ey - cyp).toDouble(), (a.ex - cxp).toDouble())
             val len = dp(18f).toFloat(); val spread = Math.toRadians(28.0)
             for (s in listOf(-1, 1)) {
