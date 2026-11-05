@@ -11,6 +11,7 @@ import android.text.style.ForegroundColorSpan
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -62,8 +63,21 @@ abstract class ScreenActivity : FadeActivity() {
         root.addView(content, FrameLayout.LayoutParams(-1, -1).apply { topMargin = headerH; leftMargin = sideL; rightMargin = sideR })
         root.addView(buildHeader(headerH), FrameLayout.LayoutParams(-1, headerH, Gravity.TOP).apply { leftMargin = sideL; rightMargin = sideR })
         build(content, bw - sideL - sideR, bh - headerH)
+        unclip(root)
     }
 
+    /** 부모가 자식의 그림자·모서리를 잘라내지 않도록 모든 하위 뷰의 잘라내기를 끈다(나중에 추가되는 뷰 포함). */
+    private val unclipListener = object : ViewGroup.OnHierarchyChangeListener {
+        override fun onChildViewAdded(parent: View?, child: View?) { child?.let { unclip(it) } }
+        override fun onChildViewRemoved(parent: View?, child: View?) {}
+    }
+    private fun unclip(v: View) {
+        if (v !is ViewGroup) return
+        v.clipChildren = false
+        if (v !is android.widget.ScrollView && v !is android.widget.HorizontalScrollView) v.clipToPadding = false
+        v.setOnHierarchyChangeListener(unclipListener)
+        for (i in 0 until v.childCount) unclip(v.getChildAt(i))
+    }
     private fun buildHeader(h: Int): View {
         val row = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
