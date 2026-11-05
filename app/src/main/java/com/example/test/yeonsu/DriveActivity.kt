@@ -95,7 +95,7 @@ class DriveActivity : FadeActivity() {
         if (driving) {
             idleLayer.visibility = View.GONE; activeLayer.visibility = View.VISIBLE; activeLayer.alpha = 1f
             bubbleChip.visibility = if (lastChip.isEmpty()) View.GONE else View.VISIBLE
-            bubbleChip.text = lastChip; bubbleText.text = lastText
+            bubbleChip.text = lastChip; bubbleText.text = lastText.replace("! ", "!\n")
         }
     }
 
