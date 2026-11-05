@@ -11,6 +11,7 @@ import com.example.test.yeonsu.door.DoorQuestController
 import com.example.test.yeonsu.headlamp.HeadlampQuestController
 import com.example.test.yeonsu.highbeam.HighBeamQuestController
 import com.example.test.yeonsu.signal.TurnSignalQuestController
+import com.example.test.yeonsu.window.WindowQuestController
 
 /**
  * 연저씨 · 퀘스트 상세/진행/완료 (HTML detail.js, success).
@@ -33,13 +34,16 @@ class QuestDetailActivity : ScreenActivity() {
     private val isHeadlampQuest: Boolean get() = HeadlampQuestController.isHeadlampQuest(QuestSession.selected().id)
     /** 상향등 신호로 판정하는 퀘스트인지(상향등 켜기/끄기). */
     private val isHighBeamQuest: Boolean get() = HighBeamQuestController.isHighBeamQuest(QuestSession.selected().id)
-    /** 차량 신호(방향지시등·문·하향등·상향등)로 판정하는 퀘스트인지. */
-    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest || isHighBeamQuest
+    /** 운전석 창문 신호로 판정하는 퀘스트인지(창문 열기/닫기). */
+    private val isWindowQuest: Boolean get() = WindowQuestController.isWindowQuest(QuestSession.selected().id)
+    /** 차량 신호(방향지시등·문·하향등·상향등·창문)로 판정하는 퀘스트인지. */
+    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest || isHighBeamQuest || isWindowQuest
 
     private var controller: TurnSignalQuestController? = null
     private var doorController: DoorQuestController? = null
     private var headlampController: HeadlampQuestController? = null
     private var highBeamController: HighBeamQuestController? = null
+    private var windowController: WindowQuestController? = null
     /** 차량 신호 경로에서 화면에 보여줄 현재 단계 안내/사유. */
     private var signalGuide: String? = null
     private var signalError: String? = null
@@ -96,6 +100,7 @@ class QuestDetailActivity : ScreenActivity() {
                     isDoorQuest -> "차량 신호로 확인하는 퀘스트예요 · 운전석 문을 직접 조작하세요"
                     isHeadlampQuest -> "차량 신호로 확인하는 퀘스트예요 · 전조등을 직접 조작하세요"
                     isHighBeamQuest -> "차량 신호로 확인하는 퀘스트예요 · 상향등을 직접 조작하세요"
+                    isWindowQuest -> "차량 신호로 확인하는 퀘스트예요 · 운전석 창문을 직접 조작하세요"
                     else -> "차량 신호로 확인하는 퀘스트예요 · 방향지시등을 직접 조작하세요"
                 }
                 panel.addView(tv(hint, 16f, Color.parseColor("#758298"))
@@ -156,6 +161,7 @@ class QuestDetailActivity : ScreenActivity() {
             isDoorQuest -> startDoor(q)
             isHeadlampQuest -> startHeadlamp(q)
             isHighBeamQuest -> startHighBeam(q)
+            isWindowQuest -> startWindow(q)
         }
         refresh()
     }
@@ -166,6 +172,7 @@ class QuestDetailActivity : ScreenActivity() {
             isDoorQuest -> stopDoor()
             isHeadlampQuest -> stopHeadlamp()
             isHighBeamQuest -> stopHighBeam()
+            isWindowQuest -> stopWindow()
         }
         store.stop(q)
         refresh()
@@ -269,9 +276,34 @@ class QuestDetailActivity : ScreenActivity() {
         highBeamController = null
     }
 
+    // ───── 운전석 창문 경로 ─────
+    private fun startWindow(q: Quest) {
+        signalError = null
+        if (windowController != null) return
+        val kind = WindowQuestController.questKind(q.id) ?: return
+        windowController = WindowQuestController(applicationContext, object : WindowQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    // 완료 기록은 1건만. completeVerified 가 중복을 막고, 그 뒤 컨트롤러를 내려 추가 콜백을 차단한다.
+                    store.completeVerified(q)
+                    stopWindow()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }, kind).also { it.start() }
+    }
+
+    private fun stopWindow() {
+        windowController?.stop()
+        windowController = null
+    }
+
     override fun onStop() {
         // 화면을 떠나면 구독 해제. 중단/이탈 후 도착하는 콜백은 컨트롤러가 무시한다.
-        if (!success) { stopSignal(); stopDoor(); stopHeadlamp(); stopHighBeam() }
+        if (!success) { stopSignal(); stopDoor(); stopHeadlamp(); stopHighBeam(); stopWindow() }
         super.onStop()
     }
 
@@ -280,6 +312,7 @@ class QuestDetailActivity : ScreenActivity() {
         stopDoor()
         stopHeadlamp()
         stopHighBeam()
+        stopWindow()
         super.onDestroy()
     }
 }
