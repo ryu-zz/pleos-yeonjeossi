@@ -11,6 +11,7 @@ import com.example.test.yeonsu.chargeport.ChargePortQuestController
 import com.example.test.yeonsu.door.DoorQuestController
 import com.example.test.yeonsu.headlamp.HeadlampQuestController
 import com.example.test.yeonsu.highbeam.HighBeamQuestController
+import com.example.test.yeonsu.hvac.HvacQuestController
 import com.example.test.yeonsu.lock.DoorLockQuestController
 import com.example.test.yeonsu.signal.TurnSignalQuestController
 import com.example.test.yeonsu.trunk.TrunkQuestController
@@ -45,8 +46,10 @@ class QuestDetailActivity : ScreenActivity() {
     private val isTrunkQuest: Boolean get() = TrunkQuestController.isTrunkQuest(QuestSession.selected().id)
     /** 충전구 신호로 판정하는 퀘스트인지. */
     private val isChargePortQuest: Boolean get() = ChargePortQuestController.isChargePortQuest(QuestSession.selected().id)
-    /** 차량 신호(방향지시등·문·하향등·상향등·창문·문잠금·트렁크·충전구)로 판정하는 퀘스트인지. */
-    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest || isHighBeamQuest || isWindowQuest || isDoorLockQuest || isTrunkQuest || isChargePortQuest
+    /** 공조·시야 신호로 판정하는 퀘스트인지. */
+    private val isHvacQuest: Boolean get() = HvacQuestController.isHvacQuest(QuestSession.selected().id)
+    /** 차량 신호(방향지시등·문·하향등·상향등·창문·문잠금·트렁크·충전구·공조)로 판정하는 퀘스트인지. */
+    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest || isHighBeamQuest || isWindowQuest || isDoorLockQuest || isTrunkQuest || isChargePortQuest || isHvacQuest
 
     private var controller: TurnSignalQuestController? = null
     private var doorController: DoorQuestController? = null
@@ -56,6 +59,7 @@ class QuestDetailActivity : ScreenActivity() {
     private var doorLockController: DoorLockQuestController? = null
     private var trunkController: TrunkQuestController? = null
     private var chargePortController: ChargePortQuestController? = null
+    private var hvacController: HvacQuestController? = null
     /** 차량 신호 경로에서 화면에 보여줄 현재 단계 안내/사유. */
     private var signalGuide: String? = null
     private var signalError: String? = null
@@ -116,6 +120,7 @@ class QuestDetailActivity : ScreenActivity() {
                     isDoorLockQuest -> "차량 신호로 확인하는 퀘스트예요 · 전체 문 잠금을 직접 조작하세요"
                     isTrunkQuest -> "차량 신호로 확인하는 퀘스트예요 · 트렁크를 직접 조작하세요"
                     isChargePortQuest -> "차량 신호로 확인하는 퀘스트예요 · 충전구를 직접 조작하세요"
+                    isHvacQuest -> "차량 신호로 확인하는 퀘스트예요 · 공조·시야 기능을 직접 조작하세요"
                     else -> "차량 신호로 확인하는 퀘스트예요 · 방향지시등을 직접 조작하세요"
                 }
                 panel.addView(tv(hint, 16f, Color.parseColor("#758298"))
@@ -180,6 +185,7 @@ class QuestDetailActivity : ScreenActivity() {
             isDoorLockQuest -> startDoorLock(q)
             isTrunkQuest -> startTrunk(q)
             isChargePortQuest -> startChargePort(q)
+            isHvacQuest -> startHvac(q)
         }
         refresh()
     }
@@ -194,6 +200,7 @@ class QuestDetailActivity : ScreenActivity() {
             isDoorLockQuest -> stopDoorLock()
             isTrunkQuest -> stopTrunk()
             isChargePortQuest -> stopChargePort()
+            isHvacQuest -> stopHvac()
         }
         store.stop(q)
         refresh()
@@ -394,9 +401,34 @@ class QuestDetailActivity : ScreenActivity() {
         chargePortController = null
     }
 
+    // ───── 공조·시야 경로 ─────
+    private fun startHvac(q: Quest) {
+        signalError = null
+        if (hvacController != null) return
+        val kind = HvacQuestController.questKind(q.id) ?: return
+        hvacController = HvacQuestController(applicationContext, object : HvacQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    // 완료 기록은 1건만. completeVerified 가 중복을 막고, 그 뒤 컨트롤러를 내려 추가 콜백을 차단한다.
+                    store.completeVerified(q)
+                    stopHvac()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }, kind).also { it.start() }
+    }
+
+    private fun stopHvac() {
+        hvacController?.stop()
+        hvacController = null
+    }
+
     override fun onStop() {
         // 화면을 떠나면 구독 해제. 중단/이탈 후 도착하는 콜백은 컨트롤러가 무시한다.
-        if (!success) { stopSignal(); stopDoor(); stopHeadlamp(); stopHighBeam(); stopWindow(); stopDoorLock(); stopTrunk(); stopChargePort() }
+        if (!success) { stopSignal(); stopDoor(); stopHeadlamp(); stopHighBeam(); stopWindow(); stopDoorLock(); stopTrunk(); stopChargePort(); stopHvac() }
         super.onStop()
     }
 
@@ -409,6 +441,7 @@ class QuestDetailActivity : ScreenActivity() {
         stopDoorLock()
         stopTrunk()
         stopChargePort()
+        stopHvac()
         super.onDestroy()
     }
 }
