@@ -11,7 +11,7 @@ import android.widget.TextView
 /** 도움말에서 가리킬 대상 하나: 화면 위 사각형(rect), 제목, 설명. 글자는 대상 아래에 놓고 화살표로 대상을 가리킨다. */
 enum class HelpPlace { OVER_MID, LEFT, RIGHT, ABOVE, BELOW }
 /** frac: 글자를 놓을 세로 위치(대상 높이의 비율). */
-class HelpTarget(val rect: RectF, val title: String, val body: String, val place: HelpPlace = HelpPlace.OVER_MID, val frac: Float = 0.5f)
+class HelpTarget(val rect: RectF, val title: String, val body: String, val place: HelpPlace = HelpPlace.OVER_MID, val frac: Float = 0.5f, val arrow: Boolean = true)
 
 /**
  * 도움말 화면. 화면 전체를 어둡게 덮고, 흰 글씨 설명과 흰 화살표로 대상을 가리킨다.
@@ -60,8 +60,11 @@ class HelpOverlay(
             val pad = dp(10f).toFloat()   // 화살표 끝과 글자 사이 간격
             when (t.place) {
                 HelpPlace.OVER_MID -> {   // 카드 위 중간에 글자, 글자 위에서 위쪽으로 화살표
-                    bx = cx - textW / 2f; by = t.rect.top + t.rect.height() * t.frac
-                    arrows.add(Arrow(cx, by - pad, cx, by - pad - len, 0f, 0f))
+                    bx = cx - textW / 2f
+                    if (t.arrow) {
+                        by = t.rect.top + t.rect.height() * t.frac
+                        arrows.add(Arrow(cx, by - pad, cx, by - pad - len, 0f, 0f))
+                    } else by = cy - bh / 2f   // 화살표 없이 글자만: 위치 비율의 높이에 글자 가운데를 맞춘다
                 }
                 HelpPlace.LEFT -> {       // 카드 왼쪽에 글자, 오른쪽의 카드를 가리킨다
                     bx = t.rect.left - gap - len - pad - textW; by = cy - bh / 2f

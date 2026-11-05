@@ -26,7 +26,7 @@ class ScenarioActivity : ScreenActivity() {
     override fun helpItems(): List<HelpItem>? {
         val p = photoView ?: return null; val n = nextBtn ?: return null
         return listOf(
-            HelpItem(p, "시나리오", "연저씨가 상황을 4컷으로 보여줘요\n한 컷씩 넘기며 읽어보세요", HelpPlace.OVER_MID, 0.45f),
+            HelpItem(p, "시나리오", "연저씨가 상황을 4컷으로 보여줘요\n한 컷씩 넘기며 읽어보세요", HelpPlace.OVER_MID, 0.5f, arrow = false),
             HelpItem(n, "다음 버튼", "눌러서 다음 컷으로 넘겨요\n마지막 컷의 '끝'을 누르면 다음 단계로 가요", HelpPlace.RIGHT),
         )
     }
