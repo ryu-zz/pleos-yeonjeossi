@@ -61,8 +61,8 @@ class HelpOverlay(
                     arrows.add(Arrow(cx + bend * 0.3f, by - dp(14f), cx, t.rect.top + t.rect.height() * 0.30f, bend, 0f))
                 }
                 HelpPlace.LEFT -> {       // 카드 왼쪽에 글자, 오른쪽의 카드를 가리킨다
-                    bx = t.rect.left - dp(90f) - textW; by = cy - bh / 2f
-                    arrows.add(Arrow(t.rect.left - dp(78f), cy + dp(10f), t.rect.left - dp(6f), cy, 0f, -bend * 0.8f))
+                    bx = t.rect.left - dp(56f) - textW; by = cy - bh / 2f
+                    arrows.add(Arrow(t.rect.left - dp(46f), cy + dp(8f), t.rect.left - dp(6f), cy, 0f, -bend * 0.6f))
                 }
                 HelpPlace.ABOVE -> {      // 카드 위쪽에 글자, 아래의 카드를 가리킨다
                     bx = cx - textW / 2f; by = t.rect.top - dp(60f) - bh
