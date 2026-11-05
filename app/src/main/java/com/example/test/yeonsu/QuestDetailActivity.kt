@@ -14,6 +14,7 @@ import ai.pleos.playground.vehicle.listener.SeatForeAftPositionListener
 import ai.pleos.playground.vehicle.api.model.area.DoorArea
 import ai.pleos.playground.vehicle.constant.area.DoorValue
 import ai.pleos.playground.vehicle.listener.DoorPositionListener
+import ai.pleos.playground.vehicle.listener.BrakePedalStatusListener
 
 /**
  * 연저씨 · 퀘스트 상세/진행/완료 (HTML detail.js, success).
@@ -48,6 +49,7 @@ class QuestDetailActivity : ScreenActivity() {
         super.onCreate(savedInstanceState)
         val qn = QuestSession.selected().name
         if (qn == TRUNK_QUEST) { initTrunk(); return }
+        if (qn == BRAKE_QUEST) { initBrake(); return }
         if (qn != SEAT_QUEST) return
         try {
             val v = Vehicle(applicationContext).also { it.initialize() }
@@ -78,6 +80,32 @@ class QuestDetailActivity : ScreenActivity() {
             if (store.advance(q)) { success = true; refresh() }
         }
     }
+    // ── "브레이크 위치" 퀘스트: 브레이크 페달이 밟힘 상태(true)가 되면 자동 완료 ──
+    private var lastBrake: Boolean? = null
+    private val brakeListener = object : BrakePedalStatusListener {
+        override fun onBrakePedalStatusUpdated(p0: Boolean?) {
+            android.util.Log.d("YeonsuBrake", "event brake=$p0 last=$lastBrake")
+            runOnUiThread { onBrake(p0) }
+        }
+        override fun onFailed(p0: Exception) { android.util.Log.e("YeonsuBrake", "구독 실패 $p0") }
+    }
+    private fun onBrake(now: Boolean?) {
+        val before = lastBrake
+        if (now != null) lastBrake = now
+        val q = QuestSession.selected()
+        if (q.name != BRAKE_QUEST || success || now != true || before == true) return
+        if (store.state(q).status == "doing" && store.advance(q)) { success = true; refresh() }
+    }
+    private fun initBrake() {
+        try {
+            val v = Vehicle(applicationContext).also { it.initialize() }
+            vehicle = v
+            v.getBrake().getCurrentBrakePedalStatus({ lastBrake = it; android.util.Log.d("YeonsuBrake", "초기 brake=$it"); seatConnected = true; runOnUiThread { refresh() } },
+                { android.util.Log.e("YeonsuBrake", "읽기 실패 $it") })
+            v.getBrake().registerBrakePedalStatus(brakeListener)
+            poll.postDelayed(pollTick, 1000)
+        } catch (e: Throwable) { android.util.Log.e("YeonsuBrake", "차량 연결 실패 $e") }
+    }
     private fun initTrunk() {
         try {
             val v = Vehicle(applicationContext).also { it.initialize() }
@@ -94,6 +122,13 @@ class QuestDetailActivity : ScreenActivity() {
     private val pollTick = object : Runnable {
         override fun run() {
             if (success) return
+            if (QuestSession.selected().name == BRAKE_QUEST) {
+                try {
+                    vehicle?.getBrake()?.getCurrentBrakePedalStatus(
+                        { p -> runOnUiThread { onBrake(p) } }, { android.util.Log.e("YeonsuBrake", "poll 실패 $it") })
+                } catch (_: Throwable) {}
+                poll.postDelayed(this, 1000); return
+            }
             if (QuestSession.selected().name == TRUNK_QUEST) {
                 try {
                     vehicle?.getDoor()?.getCurrentDoorPosition(trunk,
@@ -112,7 +147,7 @@ class QuestDetailActivity : ScreenActivity() {
     }
     override fun onDestroy() {
         poll.removeCallbacks(pollTick)
-        try { vehicle?.getSeat()?.unregisterSeatForeAftPosition(driver, seatListener); vehicle?.getDoor()?.unregisterDoorPosition(trunk, trunkListener); vehicle?.release() } catch (_: Throwable) {}
+        try { vehicle?.getSeat()?.unregisterSeatForeAftPosition(driver, seatListener); vehicle?.getDoor()?.unregisterDoorPosition(trunk, trunkListener); vehicle?.getBrake()?.unregisterBrakePedalStatus(brakeListener); vehicle?.release() } catch (_: Throwable) {}
         super.onDestroy()
     }
 
@@ -165,8 +200,8 @@ class QuestDetailActivity : ScreenActivity() {
         panel.addView(actions)
 
         if (!success && s.status == "doing") {
-            if (q.name == SEAT_QUEST || q.name == TRUNK_QUEST) panel.addView(tv(
-                if (!seatConnected) "차량 연결 중…" else if (q.name == TRUNK_QUEST) "차량 연결됨 · 트렁크를 열면 자동으로 완료돼요 (이미 열려 있으면 닫았다가 다시 열어요)" else "차량 연결됨 · 운전석 시트를 앞뒤로 움직이면 자동으로 완료돼요", 18f, Color.parseColor("#2D7653"), true
+            if (q.name == SEAT_QUEST || q.name == TRUNK_QUEST || q.name == BRAKE_QUEST) panel.addView(tv(
+                if (!seatConnected) "차량 연결 중…" else if (q.name == BRAKE_QUEST) "차량 연결됨 · 브레이크 페달을 밟으면 자동으로 완료돼요" else if (q.name == TRUNK_QUEST) "차량 연결됨 · 트렁크를 열면 자동으로 완료돼요 (이미 열려 있으면 닫았다가 다시 열어요)" else "차량 연결됨 · 운전석 시트를 앞뒤로 움직이면 자동으로 완료돼요", 18f, Color.parseColor("#2D7653"), true
             ).apply { setPadding(0, dp(18f), 0, 0) })
             panel.addView(tv("미리보기 조작 · 실제 차량 조작이 아닙니다", 16f, Color.parseColor("#758298")).apply { setPadding(0, dp(22f), 0, dp(8f)) })
             panel.addView(tv((if (q.tip != null) "동작을 마쳤다고 치기" else q.steps[s.step]) + "　→", 22f, ScreenActivity.NAVY).apply {
@@ -227,5 +262,5 @@ class QuestDetailActivity : ScreenActivity() {
         }
         content.addView(root, FrameLayout.LayoutParams(-1, -1))
     }
-    companion object { private const val SEAT_QUEST = "운전석 앞뒤 조절"; private const val TRUNK_QUEST = "트렁크" }
+    companion object { private const val SEAT_QUEST = "운전석 앞뒤 조절"; private const val TRUNK_QUEST = "트렁크"; private const val BRAKE_QUEST = "브레이크 위치" }
 }
