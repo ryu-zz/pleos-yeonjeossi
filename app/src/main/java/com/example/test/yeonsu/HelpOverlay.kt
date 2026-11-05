@@ -53,20 +53,19 @@ class HelpOverlay(
             box.addView(tv(t.body, 20f, Color.WHITE, false).apply { setPadding(0, dp(8f), 0, 0); setLineSpacing(0f, 1.25f) })
             box.measure(MeasureSpec.makeMeasureSpec(textW, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED))
             val bh = box.measuredHeight
-            val bend = if (i % 2 == 0) -dp(40f).toFloat() else dp(40f).toFloat()
             val bx: Float; val by: Float
             when (t.place) {
                 HelpPlace.OVER_MID -> {   // 카드 위 중간에 글자, 글자 위에서 카드 제목 쪽으로 화살표
                     bx = cx - textW / 2f; by = t.rect.top + t.rect.height() * 0.50f
-                    arrows.add(Arrow(cx + bend * 0.3f, by - dp(14f), cx, t.rect.top + t.rect.height() * 0.30f, bend, 0f))
+                    arrows.add(Arrow(cx, by - dp(14f), cx, t.rect.top + t.rect.height() * 0.30f, 0f, 0f))
                 }
                 HelpPlace.LEFT -> {       // 카드 왼쪽에 글자, 오른쪽의 카드를 가리킨다
                     bx = t.rect.left - dp(56f) - textW; by = cy - bh / 2f
-                    arrows.add(Arrow(t.rect.left - dp(46f), cy + dp(8f), t.rect.left - dp(6f), cy, 0f, -bend * 0.6f))
+                    arrows.add(Arrow(t.rect.left - dp(50f), cy, t.rect.left - dp(6f), cy, 0f, 0f))
                 }
                 HelpPlace.ABOVE -> {      // 카드 위쪽에 글자, 아래의 카드를 가리킨다
                     bx = cx - textW / 2f; by = t.rect.top - dp(60f) - bh
-                    arrows.add(Arrow(cx + bend * 0.3f, t.rect.top - dp(52f), cx, t.rect.top - dp(4f), bend, 0f))
+                    arrows.add(Arrow(cx, t.rect.top - dp(52f), cx, t.rect.top - dp(4f), 0f, 0f))
                 }
             }
             addView(box, LayoutParams(textW, -2, Gravity.TOP or Gravity.START).apply {
