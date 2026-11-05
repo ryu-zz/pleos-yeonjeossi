@@ -45,17 +45,17 @@ class HelpOverlay(
 
         targets.forEachIndexed { i, t ->
             val cx = t.rect.centerX()
-            val textW = dp(380f)
+            val textW = minOf(dp(380f), (t.rect.width() - dp(24f)).toInt())
             val box = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
-            box.addView(tv(t.title, 28f, Color.WHITE, true))
-            box.addView(tv(t.body, 18f, Color.WHITE, false).apply { setPadding(0, dp(6f), 0, 0); setLineSpacing(0f, 1.2f) })
-            val left = (cx - textW / 2f).coerceIn(dp(8f).toFloat(), 99999f)
+            box.addView(tv(t.title, 32f, Color.WHITE, true))
+            box.addView(tv(t.body, 20f, Color.WHITE, false).apply { setPadding(0, dp(8f), 0, 0); setLineSpacing(0f, 1.25f) })
+            // 카드 위, 중간쯤에 글자를 놓고, 글자 위에서 카드 제목 쪽으로 화살표를 올린다
+            val textTop = t.rect.top + t.rect.height() * 0.50f
             addView(box, LayoutParams(textW, -2, Gravity.TOP or Gravity.START).apply {
-                leftMargin = left.toInt(); topMargin = (t.rect.bottom + dp(30f)).toInt()
+                leftMargin = (cx - textW / 2f).toInt(); topMargin = textTop.toInt()
             })
-            // 글자 위쪽에서 시작해 카드 아래쪽 가장자리를 가리키는 화살표(살짝 휘게)
-            val bend = if (i % 2 == 0) -dp(26f).toFloat() else dp(26f).toFloat()
-            arrows.add(Arrow(cx + bend * 0.2f, t.rect.bottom + dp(26f), cx, t.rect.bottom - dp(4f), bend * 0.6f))
+            val bend = if (i % 2 == 0) -dp(40f).toFloat() else dp(40f).toFloat()
+            arrows.add(Arrow(cx + bend * 0.3f, textTop - dp(14f), cx, t.rect.top + t.rect.height() * 0.30f, bend))
         }
         alpha = 0f
         animate().alpha(1f).setDuration(220).start()

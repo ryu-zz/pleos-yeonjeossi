@@ -204,9 +204,9 @@ class HomeActivity : FadeActivity() {
         }
         rects.forEach { it.left = maxOf(it.left, dp(8f).toFloat()); it.right = minOf(it.right, r.width - dp(8f).toFloat()) }
         val bodies = listOf(
-            "나의 연습 기록과 완료한 퀘스트를 봐요",
-            "주행 안내 (서비스 구현 중)",
-            "차량 조작과 일상 운전 미션으로 연습해요",
+            "나의 연습 기록과\n완료한 퀘스트를 봐요",
+            "주행 안내\n(서비스 구현 중)",
+            "차량 조작과 일상 운전\n미션으로 연습해요",
         )
         val targets = items.mapIndexed { i, it -> HelpTarget(rects[i], it.title, bodies[i]) }
         val o = HelpOverlay(this, k, "여기가 메인 화면이에요", "화면을 누르면 닫혀요", targets) { help = null }
