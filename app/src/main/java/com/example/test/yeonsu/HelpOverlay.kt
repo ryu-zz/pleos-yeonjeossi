@@ -9,8 +9,9 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 /** 도움말에서 가리킬 대상 하나: 화면 위 사각형(rect), 제목, 설명. 글자는 대상 아래에 놓고 화살표로 대상을 가리킨다. */
-enum class HelpPlace { OVER_MID, LEFT, ABOVE }
-class HelpTarget(val rect: RectF, val title: String, val body: String, val place: HelpPlace = HelpPlace.OVER_MID)
+enum class HelpPlace { OVER_MID, LEFT, RIGHT, ABOVE }
+/** frac: 글자를 놓을 세로 위치(대상 높이의 비율). */
+class HelpTarget(val rect: RectF, val title: String, val body: String, val place: HelpPlace = HelpPlace.OVER_MID, val frac: Float = 0.5f)
 
 /**
  * 도움말 화면. 화면 전체를 어둡게 덮고, 흰 글씨 설명과 흰 화살표로 대상을 가리킨다.
@@ -45,9 +46,9 @@ class HelpOverlay(
         addView(head, LayoutParams(-2, -2, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = dp(24f) })
 
         targets.forEachIndexed { i, t ->
-            val cx = t.rect.centerX(); val cy = t.rect.centerY()
+            val cx = t.rect.centerX(); val cy = t.rect.top + t.rect.height() * t.frac
             val maxW = if (t.place == HelpPlace.OVER_MID) (t.rect.width() - dp(24f)).toInt() else dp(420f)
-            val textW = minOf(dp(380f), maxW)
+            val textW = minOf(if (t.place == HelpPlace.OVER_MID) dp(520f) else dp(380f), maxW)
             val box = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL }
             box.addView(tv(t.title, 32f, Color.WHITE, true))
             box.addView(tv(t.body, 20f, Color.WHITE, false).apply { setPadding(0, dp(8f), 0, 0); setLineSpacing(0f, 1.25f) })
@@ -56,12 +57,16 @@ class HelpOverlay(
             val bx: Float; val by: Float
             when (t.place) {
                 HelpPlace.OVER_MID -> {   // 카드 위 중간에 글자, 글자 위에서 카드 제목 쪽으로 화살표
-                    bx = cx - textW / 2f; by = t.rect.top + t.rect.height() * 0.50f
-                    arrows.add(Arrow(cx, by - dp(14f), cx, t.rect.top + t.rect.height() * 0.30f, 0f, 0f))
+                    bx = cx - textW / 2f; by = t.rect.top + t.rect.height() * t.frac
+                    arrows.add(Arrow(cx, by - dp(14f), cx, t.rect.top + t.rect.height() * (t.frac - 0.2f), 0f, 0f))
                 }
                 HelpPlace.LEFT -> {       // 카드 왼쪽에 글자, 오른쪽의 카드를 가리킨다
                     bx = t.rect.left - dp(56f) - textW; by = cy - bh / 2f
                     arrows.add(Arrow(t.rect.left - dp(50f), cy, t.rect.left - dp(6f), cy, 0f, 0f))
+                }
+                HelpPlace.RIGHT -> {      // 카드 오른쪽에 글자, 왼쪽의 카드를 가리킨다
+                    bx = t.rect.right + dp(56f); by = cy - bh / 2f
+                    arrows.add(Arrow(t.rect.right + dp(50f), cy, t.rect.right + dp(6f), cy, 0f, 0f))
                 }
                 HelpPlace.ABOVE -> {      // 카드 위쪽에 글자, 아래의 카드를 가리킨다
                     bx = cx - textW / 2f; by = t.rect.top - dp(60f) - bh

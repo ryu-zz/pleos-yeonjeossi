@@ -14,6 +14,18 @@ class QuestListActivity : ScreenActivity() {
     override val parentScreen: Class<out Activity> = QuestTypesActivity::class.java
     private val store by lazy { QuestStore(this) }
 
+    private var catPanel: View? = null
+    private var listPanel: View? = null
+    override fun helpHeadline() = if (QuestSession.type == "daily") "일상 퀘스트 화면이에요" else "차량 퀘스트 화면이에요"
+    override fun helpItems(): List<HelpItem>? {
+        if (QuestSession.type != "vehicle") return null
+        val c = catPanel ?: return null; val l = listPanel ?: return null
+        return listOf(
+            HelpItem(c, "카테고리 10개", "출발 준비부터 비상상황까지\n주제별로 나뉘어 있어요", HelpPlace.RIGHT, 0.22f),
+            HelpItem(l, "차량 퀘스트", "각 카테고리 안의 다양한 퀘스트를 깨볼 수 있어요\n한 카테고리를 다 깨면 뱃지를 받을 수 있어요", HelpPlace.OVER_MID, 0.62f),
+        )
+    }
+
     override fun build(content: FrameLayout, w: Int, h: Int) {
         val type = QuestSession.type
         val green = type == "daily"
@@ -90,13 +102,16 @@ class QuestListActivity : ScreenActivity() {
                 LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10f) })
             root.addView(right, LinearLayout.LayoutParams(-1, 0, 1f))
         } else {
-            root.addView(ScrollView(this).apply {
+            val catScroll = ScrollView(this).apply {
                 addView(catBar); isVerticalScrollBarEnabled = false
                 restoreScroll(this, scrollKey, false)
-            },
+            }
+            catPanel = catScroll
+            root.addView(catScroll,
                 LinearLayout.LayoutParams(dp(130f), -1).apply { rightMargin = dp(24f) })
             root.addView(right, LinearLayout.LayoutParams(0, -1, 1f))
         }
+        listPanel = right
         content.addView(root, FrameLayout.LayoutParams(-1, -1))
     }
 

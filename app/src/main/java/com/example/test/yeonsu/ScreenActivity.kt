@@ -101,7 +101,7 @@ abstract class ScreenActivity : FadeActivity() {
 
     // ───── 도움말 ─────
     /** 도움말에서 가리킬 항목. 화면마다 override 한다. null이면 "준비 중" 안내만 보여준다. */
-    protected class HelpItem(val view: View, val title: String, val body: String, val place: HelpPlace = HelpPlace.OVER_MID)
+    protected class HelpItem(val view: View, val title: String, val body: String, val place: HelpPlace = HelpPlace.OVER_MID, val frac: Float = 0.5f)
     protected open fun helpHeadline(): String = "도움말"
     protected open fun helpItems(): List<HelpItem>? = null
     private var helpOverlay: HelpOverlay? = null
@@ -113,8 +113,8 @@ abstract class ScreenActivity : FadeActivity() {
             val l = IntArray(2); it2.view.getLocationInWindow(l)
             val x = (l[0] - rl[0]).toFloat(); val y = (l[1] - rl[1]).toFloat()
             // 좁은 화면(1/3)에서는 왼쪽 공간이 없으므로 카드 위쪽에 놓는다
-            val place = if (compact && it2.place == HelpPlace.LEFT) HelpPlace.ABOVE else it2.place
-            HelpTarget(RectF(x, y, x + it2.view.width, y + it2.view.height), it2.title, it2.body, place)
+            val place = if (compact && (it2.place == HelpPlace.LEFT || it2.place == HelpPlace.RIGHT)) HelpPlace.ABOVE else it2.place
+            HelpTarget(RectF(x, y, x + it2.view.width, y + it2.view.height), it2.title, it2.body, place, it2.frac)
         }
         val o = HelpOverlay(this, k, helpHeadline(), "화면을 누르면 닫혀요", targets) { helpOverlay = null }
         helpOverlay = o
