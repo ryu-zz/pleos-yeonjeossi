@@ -258,14 +258,19 @@ object QuestSession {
  */
 class QuestStore(context: Context) {
     class State(val status: String, val step: Int)
-    class Record(val id: String, val name: String, val at: Long)
+    /** verified=true 면 차량 신호로 확인된 완료, false(또는 기존 기록)면 미리보기 수동 완료. */
+    class Record(val id: String, val name: String, val at: Long, val verified: Boolean = false)
 
     private val prefs = context.getSharedPreferences("yeonsu_quest", Context.MODE_PRIVATE)
 
     fun state(q: Quest): State {
         val raw = prefs.getString("p:" + q.id, null) ?: return State("new", 0)
         val p = raw.split("|")
-        return State(p.getOrNull(0) ?: "new", p.getOrNull(1)?.toIntOrNull() ?: 0)
+        val status = p.getOrNull(0) ?: "new"
+        // step은 "done|<숫자>" / "doing|<숫자>" 형식의 숫자. 숫자가 아니면(예: 과거 테스트의 done|verified)
+        // 완료 상태면 마지막 단계(steps.size)로, 그 외엔 0으로 복원한다(하위호환).
+        val step = p.getOrNull(1)?.toIntOrNull() ?: if (status == "done") q.steps.size else 0
+        return State(status, step)
     }
 
     fun start(q: Quest) {
@@ -297,11 +302,36 @@ class QuestStore(context: Context) {
         return false
     }
 
+    /**
+     * 차량 신호로 확인된 완료를 저장한다(방향지시등 등 실제 판정 퀘스트용).
+     * - 진행 상태를 done 으로 바꾸고 records 에 verified=true 기록을 1건 추가한다.
+     * - 이미 이 퀘스트의 "차량 확인(verified) 기록"이 있으면 중복 추가하지 않는다
+     *   (완료 콜백이 여러 번 와도 수행 1회당 1건만 저장되게 하는 2차 안전장치).
+     * @return 이번 호출로 새 기록이 추가되면 true.
+     */
+    fun completeVerified(q: Quest): Boolean {
+        // 진행 상태는 기존 형식 그대로 "done|<완료 단계 수>"로 저장한다(advance 와 동일 규칙).
+        // 차량 신호 확인 여부는 상태 문자열이 아니라 records 의 verified 필드로만 구분한다.
+        prefs.edit().putString("p:" + q.id, "done|${q.steps.size}").apply()
+        val arr = JSONArray(prefs.getString("records", "[]"))
+        for (i in 0 until arr.length()) {
+            val o = arr.getJSONObject(i)
+            if (o.optString("id") == q.id && o.optBoolean("verified", false)) return false
+        }
+        arr.put(JSONObject().put("id", q.id).put("name", q.name)
+            .put("at", System.currentTimeMillis()).put("verified", true))
+        prefs.edit().putString("records", arr.toString()).apply()
+        return true
+    }
+
     fun count(status: String): Int = prefs.all.entries.count { it.key.startsWith("p:") && (it.value as? String)?.startsWith("$status|") == true }
 
-    /** 최근 순. */
+    /** 최근 순. verified 필드가 없는 기존 기록은 수동(false)으로 간주한다(하위호환). */
     fun records(): List<Record> {
         val arr = JSONArray(prefs.getString("records", "[]"))
-        return (0 until arr.length()).map { val o = arr.getJSONObject(it); Record(o.getString("id"), o.getString("name"), o.getLong("at")) }.reversed()
+        return (0 until arr.length()).map {
+            val o = arr.getJSONObject(it)
+            Record(o.getString("id"), o.getString("name"), o.getLong("at"), o.optBoolean("verified", false))
+        }.reversed()
     }
 }
