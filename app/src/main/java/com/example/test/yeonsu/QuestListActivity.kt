@@ -117,7 +117,7 @@ class QuestListActivity : ScreenActivity() {
                 } else goTo(QuestDetailActivity::class.java)
             }
         }
-        val imgName = if (QuestSession.type == "vehicle") "quest_img_${q.c}_$i" else if (i == 0) "scn_${q.c}_0" else ""
+        val imgName = if (QuestSession.type == "vehicle") "quest_img_${q.c}_$i" else ""
         val imgId = if (imgName.isEmpty()) 0 else resources.getIdentifier(imgName, "drawable", packageName)
         if (imgId != 0) {
             row.addView(android.widget.ImageView(this).apply {
