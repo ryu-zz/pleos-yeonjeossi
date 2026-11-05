@@ -20,6 +20,16 @@ class ScenarioActivity : ScreenActivity() {
     override val parentScreen: Class<out Activity> = QuestListActivity::class.java
     private val store by lazy { QuestStore(this) }
     private var cut = 0
+    private var photoView: View? = null
+    private var nextBtn: View? = null
+    override fun helpHeadline() = "시나리오 화면이에요"
+    override fun helpItems(): List<HelpItem>? {
+        val p = photoView ?: return null; val n = nextBtn ?: return null
+        return listOf(
+            HelpItem(p, "시나리오", "연저씨가 상황을 4컷으로 보여줘요\n한 컷씩 넘기며 읽어보세요", HelpPlace.OVER_MID, 0.45f),
+            HelpItem(n, "다음 버튼", "눌러서 다음 컷으로 넘겨요\n마지막 컷의 '끝'을 누르면 다음 단계로 가요", HelpPlace.RIGHT),
+        )
+    }
 
     override fun build(content: FrameLayout, w: Int, h: Int) {
         val q = QuestSession.selected()
@@ -48,22 +58,26 @@ class ScenarioActivity : ScreenActivity() {
         var iw = minOf(maxW, (maxH * aspect).toInt())
         var ih = (iw / aspect).toInt()
         if (ih > maxH) { ih = maxH; iw = (ih * aspect).toInt() }
-        root.addView(ImageView(this).apply {
+        val photo = ImageView(this).apply {
             setImageResource(imgId); scaleType = ImageView.ScaleType.FIT_XY
             clipToOutline = true
             outlineProvider = object : ViewOutlineProvider() {
                 override fun getOutline(v: View, out: Outline) { out.setRoundRect(0, 0, v.width, v.height, dp(28f).toFloat()) }
             }
             elevation = dp(4f).toFloat()
-        }, LinearLayout.LayoutParams(iw, ih))
+        }
+        photoView = photo
+        root.addView(photo, LinearLayout.LayoutParams(iw, ih))
 
         // 이전 / 다음
         val actions = LinearLayout(this).apply { gravity = Gravity.CENTER }
         actions.addView(button("‹ 이전", primary = false, enabled = cut > 0) { cut--; refresh() })
         val last = cut == 3
-        actions.addView(button(if (last) "끝" else "다음 ›") {
+        val next = button(if (last) "끝" else "다음 ›") {
             if (!last) { cut++; refresh() } else finishScenario(q)
-        }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(20f) })
+        }
+        nextBtn = next
+        actions.addView(next, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(20f) })
         root.addView(actions, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(14f) })
         content.addView(root, FrameLayout.LayoutParams(-1, -1))
     }
