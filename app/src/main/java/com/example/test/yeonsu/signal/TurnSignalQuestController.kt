@@ -21,10 +21,11 @@ import android.content.Context
 class TurnSignalQuestController(
     private val source: TurnSignalSource,
     private val callback: Callback,
+    private val quest: TurnSignalQuest = TurnSignalQuest.LEFT,
 ) {
     /** 앱 실제 경로: Vehicle SDK 수신원을 사용한다. */
-    constructor(appContext: Context, callback: Callback) :
-        this(VehicleTurnSignalSource(appContext.applicationContext), callback)
+    constructor(appContext: Context, callback: Callback, quest: TurnSignalQuest = TurnSignalQuest.LEFT) :
+        this(VehicleTurnSignalSource(appContext.applicationContext), callback, quest)
 
     interface Callback {
         /** 단계가 바뀌었거나 안내 문구를 갱신해야 할 때. */
@@ -44,7 +45,7 @@ class TurnSignalQuestController(
             if (!active || completed) return
             // 현재값으로 순서 시작(LEFT면 먼저 끄기 안내). 이미 시작돼 있으면 유지.
             if (sequence == null) {
-                sequence = TurnSignalSequence(signal)
+                sequence = TurnSignalSequence(signal, quest)
                 callback.onStageChanged(sequence!!.guideText())
             }
         }
@@ -70,7 +71,7 @@ class TurnSignalQuestController(
         val seq = sequence
         if (seq == null) {
             // onError 로 초기화됐거나 초기값 전에 업데이트가 먼저 온 경우: 이 값으로 새로 시작.
-            val s = TurnSignalSequence(signal)
+            val s = TurnSignalSequence(signal, quest)
             sequence = s
             callback.onStageChanged(s.guideText())
             return
@@ -90,7 +91,20 @@ class TurnSignalQuestController(
     }
 
     companion object {
-        /** 이 컨트롤러가 담당하는 퀘스트 ID (왼쪽 방향지시등). */
+        /** 왼쪽 방향지시등 퀘스트 ID. (기존 상수 유지 - 하위호환) */
         const val QUEST_ID = "vehicle-1-0"
+
+        /** 차량 신호로 판정하는 퀘스트 ID → 판정 종류 매핑. 여기 없는 ID 는 신호 판정 대상이 아니다. */
+        private val QUEST_BY_ID = mapOf(
+            "vehicle-1-0" to TurnSignalQuest.LEFT,   // 왼쪽 방향지시등
+            "vehicle-1-1" to TurnSignalQuest.RIGHT,  // 오른쪽 방향지시등
+            "vehicle-1-2" to TurnSignalQuest.OFF,    // 방향지시등 끄기
+        )
+
+        /** 이 퀘스트 ID 가 차량 신호로 자동 완료되는 대상인지. */
+        fun isSignalQuest(questId: String): Boolean = QUEST_BY_ID.containsKey(questId)
+
+        /** 퀘스트 ID 에 해당하는 판정 종류. 신호 대상이 아니면 null. */
+        fun questKind(questId: String): TurnSignalQuest? = QUEST_BY_ID[questId]
     }
 }

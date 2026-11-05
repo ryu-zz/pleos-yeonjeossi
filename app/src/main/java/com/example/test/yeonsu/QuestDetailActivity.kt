@@ -22,8 +22,8 @@ class QuestDetailActivity : ScreenActivity() {
     private val store by lazy { QuestStore(this) }
     private var success = false
 
-    /** 차량 신호로 판정하는 퀘스트인지. */
-    private val isSignalQuest get() = QuestSession.selected().id == TurnSignalQuestController.QUEST_ID
+    /** 차량 신호로 판정하는 퀘스트인지(왼쪽/오른쪽 방향지시등, 끄기). */
+    private val isSignalQuest get() = TurnSignalQuestController.isSignalQuest(QuestSession.selected().id)
 
     private var controller: TurnSignalQuestController? = null
     /** 차량 신호 경로에서 화면에 보여줄 현재 단계 안내/사유. */
@@ -145,6 +145,7 @@ class QuestDetailActivity : ScreenActivity() {
     private fun startSignal(q: Quest) {
         signalError = null
         if (controller != null) return
+        val kind = TurnSignalQuestController.questKind(q.id) ?: return
         controller = TurnSignalQuestController(applicationContext, object : TurnSignalQuestController.Callback {
             override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
             override fun onCompleted() {
@@ -157,7 +158,7 @@ class QuestDetailActivity : ScreenActivity() {
                 }
             }
             override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
-        }).also { it.start() }
+        }, kind).also { it.start() }
     }
 
     private fun stopSignal() {
