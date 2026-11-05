@@ -17,7 +17,7 @@ class QuestTypesActivity : ScreenActivity() {
     override fun helpItems(): List<HelpItem>? {
         val v = vehicleCard ?: return null; val d = dailyCard ?: return null
         return listOf(
-            HelpItem(v, "차량 퀘스트", "차 기본 조작을 하나씩 따라 해요\n일부는 조작하면 자동으로 알아봐요", HelpPlace.LEFT),
+            HelpItem(v, "차량 퀘스트", "차 기본 조작을 하나씩 따라하며 배워요\n다 깬 카테고리의 뱃지를 수집할 수 있어요", HelpPlace.LEFT),
             HelpItem(d, "일상 퀘스트", "주유소·주차·고속도로 같은\n상황별 미션으로 연습해요", HelpPlace.LEFT),
         )
     }
