@@ -9,6 +9,10 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
+import ai.pleos.playground.tts.TextToSpeech
+import ai.pleos.playground.tts.constant.ErrorType as TtsError
+import ai.pleos.playground.tts.constant.Mode as TtsMode
+import ai.pleos.playground.tts.listener.OnInitializeListener as TtsInit
 import ai.pleos.playground.navi.data.DestinationArrivedInfo
 import ai.pleos.playground.navi.constants.NavigationStatus
 import ai.pleos.playground.navi.data.DestinationInfo
@@ -44,8 +48,34 @@ class DailyFlowActivity : ScreenActivity() {
         }
     }
 
+    private var tts: TextToSpeech? = null
+    private var ttsReady = false
+    private var guideText: android.widget.TextView? = null
+    private var guideIdx = 0
+    private val guideHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val guideMsgs: List<String> by lazy {
+        DriveCoach.all.filter { (it.category == "방향지시등" || it.category == "감속 준비") && it.trigger != "운전 종료 후" }.map { it.text }
+    }
+    private val guideTick = object : Runnable {
+        override fun run() {
+            if (QuestFlow.stage != QuestFlow.WAIT || QuestFlow.destName == null) return
+            val m = guideMsgs[guideIdx++ % guideMsgs.size]
+            guideText?.text = m; speak(m)
+            guideHandler.postDelayed(this, 9000)
+        }
+    }
+    private fun speak(t: String) { if (ttsReady) try { tts?.speak(t, true) } catch (_: Throwable) {} }
+    private fun startGuide() { guideHandler.removeCallbacks(guideTick); guideHandler.postDelayed(guideTick, 1500) }
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
+        try {
+            tts = TextToSpeech(applicationContext, TtsMode.ON_DEVICE).also { t ->
+                t.initialize(object : TtsInit {
+                    override fun onSuccess() { try { t.setLocale(java.util.Locale.KOREA); t.setSpeakerType("EUNWOO") } catch (_: Throwable) {}; ttsReady = true }
+                    override fun onFailure(errorType: TtsError) {}
+                })
+            }
+        } catch (_: Throwable) {}
         try {
             navi = NaviHelper(applicationContext).also {
                 it.initialize({ android.util.Log.d("YeonsuNavi", "init ok"); it.addListener(listener) }, { e -> android.util.Log.d("YeonsuNavi", "init fail $e") })
@@ -62,6 +92,8 @@ class DailyFlowActivity : ScreenActivity() {
     }
 
     override fun onDestroy() {
+        guideHandler.removeCallbacks(guideTick)
+        try { tts?.release() } catch (_: Throwable) {}
         try { navi?.removeListener(listener); navi?.release() } catch (_: Throwable) {}
         super.onDestroy()
     }
@@ -84,9 +116,17 @@ class DailyFlowActivity : ScreenActivity() {
         val actions = LinearLayout(this).apply { gravity = Gravity.START }
         when (QuestFlow.stage) {
             QuestFlow.WAIT -> {
-                panel.addView(tv("내비에서 '${flow.find}' 중 한 곳을 골라 경로를 설정해 주세요.", 24f, ScreenActivity.NAVY, true).apply { setLineSpacing(0f, 1.25f) })
-                val st = QuestFlow.destName?.let { "경로 설정됨: $it" } ?: "아직 경로가 설정되지 않았어요."
-                panel.addView(tv(st, 20f, if (QuestFlow.destName != null) Color.parseColor("#2D7653") else ScreenActivity.GRAY).apply { setPadding(0, dp(12f), 0, dp(6f)) })
+                val dest = QuestFlow.destName
+                if (dest == null) {
+                    guideText = null
+                    panel.addView(tv("내비에서 '${flow.find}' 중 한 곳을 골라 경로를 설정해 주세요.", 24f, ScreenActivity.NAVY, true).apply { setLineSpacing(0f, 1.25f) })
+                    panel.addView(tv("아직 경로가 설정되지 않았어요.", 20f, ScreenActivity.GRAY).apply { setPadding(0, dp(12f), 0, dp(6f)) })
+                } else {
+                    panel.addView(tv("길 안내 중 · $dest", 22f, Color.parseColor("#2D7653"), true).apply { setPadding(0, 0, 0, dp(10f)) })
+                    val g = tv(guideMsgs[guideIdx % guideMsgs.size], 30f, ScreenActivity.NAVY, true).apply { setLineSpacing(0f, 1.25f) }
+                    guideText = g; panel.addView(g)
+                    startGuide()
+                }
                 actions.addView(button("내비 열기", primary = false) { openNavi(flow) })
                 actions.addView(button("도착했다고 치기") { QuestFlow.stage = QuestFlow.ARRIVED; refresh() },
                     LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(14f) })
@@ -94,7 +134,9 @@ class DailyFlowActivity : ScreenActivity() {
                 panel.addView(tv("도착하면 자동으로 다음으로 넘어가요. 시연할 땐 위 버튼으로 넘길 수 있어요.", 16f, Color.parseColor("#758298")).apply { setPadding(0, dp(16f), 0, 0) })
             }
             QuestFlow.ARRIVED -> {
+                guideHandler.removeCallbacks(guideTick)
                 panel.addView(tv("도착했어요! 시나리오를 한 번 더 볼까요?", 26f, ScreenActivity.NAVY, true).apply { setLineSpacing(0f, 1.25f) })
+                speak("도착했다! 시나리오 한 번 더 볼래?")
                 actions.addView(button("예") { QuestFlow.stage = QuestFlow.REPLAY; goTo(ScenarioActivity::class.java) })
                 actions.addView(button("아니오", primary = false) {
                     store.complete(q)
