@@ -5,10 +5,8 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import ai.pleos.playground.vehicle.Vehicle
-import ai.pleos.playground.vehicle.api.model.area.MirrorArea
 import ai.pleos.playground.vehicle.api.model.area.SeatArea
 import ai.pleos.playground.vehicle.api.model.area.WindowArea
-import ai.pleos.playground.vehicle.constant.area.MirrorValue
 import ai.pleos.playground.vehicle.constant.area.SeatValue
 import ai.pleos.playground.vehicle.constant.area.WindowValue
 import ai.pleos.playground.vehicle.constant.unit.TemperatureUnit
@@ -16,7 +14,6 @@ import ai.pleos.playground.vehicle.listener.HvacAcStateListener
 import ai.pleos.playground.vehicle.listener.HvacDefrosterStateListener
 import ai.pleos.playground.vehicle.listener.HvacFanSpeedListener
 import ai.pleos.playground.vehicle.listener.HvacRecirculationStateListener
-import ai.pleos.playground.vehicle.listener.HvacSideMirrorHeatStateListener
 import ai.pleos.playground.vehicle.listener.HvacTemperatureValueListener
 
 /**
@@ -54,7 +51,6 @@ class VehicleHvacSource(
     private val frontPair = SeatArea(SeatValue.ROW_1_LEFT, SeatValue.ROW_1_RIGHT)
     private val driverSeat = SeatArea(SeatValue.ROW_1_LEFT)
     private val frontWindshield = WindowArea(WindowValue.FRONT_WINDSHIELD)
-    private val bothMirrors = MirrorArea(MirrorValue.DRIVER_LEFT, MirrorValue.DRIVER_RIGHT)
 
     // 보관해 둔 리스너(해제용). 퀘스트별로 하나만 만든다.
     private var acL: HvacAcStateListener? = null
@@ -62,7 +58,6 @@ class VehicleHvacSource(
     private var defrostL: HvacDefrosterStateListener? = null
     private var tempL: HvacTemperatureValueListener? = null
     private var fanL: HvacFanSpeedListener? = null
-    private var mirrorL: HvacSideMirrorHeatStateListener? = null
 
     private fun emitInitial(isTarget: Boolean?) {
         Log.d(TAG, "[${quest.questId}] 현재 isTarget=$isTarget")
@@ -81,8 +76,6 @@ class VehicleHvacSource(
 
     // Boolean 목표: true 면 isTarget=true. (외기 모드는 recirc==false 가 목표)
     private fun boolTarget(v: Boolean?, want: Boolean): Boolean? = if (v == null) null else (v == want)
-    // Int 레벨 목표: 레벨 > 0.
-    private fun levelOn(v: Int?): Boolean? = if (v == null) null else (v > 0)
     // Int 정확값 목표.
     private fun intEquals(v: Int?, target: Int): Boolean? = if (v == null) null else (v == target)
     // Float 목표(근사 비교).
@@ -96,7 +89,6 @@ class VehicleHvacSource(
             v.initialize()
             vehicle = v
             val hvac = v.getHVAC()
-            val mirror = v.getSideMirror()
             when (quest) {
                 HvacQuest.AC_ON -> {
                     hvac.getHvacAcState(allSeats, { emitInitial(boolTarget(it, true)) }, { emitInitial(null) })
@@ -139,14 +131,6 @@ class VehicleHvacSource(
                     }
                     hvac.registerHvacFanSpeed(frontPair, fanL!!)
                 }
-                HvacQuest.MIRROR_HEAT_ON -> {
-                    mirror.getHvacSideMirrorHeatState(bothMirrors, { emitInitial(levelOn(it)) }, { emitInitial(null) })
-                    mirrorL = object : HvacSideMirrorHeatStateListener {
-                        override fun onHvacSideMirrorHeatStateUpdated(level: Int?) = emitUpdate(levelOn(level))
-                        override fun onFailed(e: Exception) = fail(e)
-                    }
-                    mirror.registerHvacSideMirrorHeatState(bothMirrors, mirrorL!!)
-                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "SDK 초기화 실패: ${e.message}")
@@ -164,7 +148,6 @@ class VehicleHvacSource(
             defrostL?.let { hvac?.unregisterHvacDefrosterState(frontWindshield, it) }
             tempL?.let { hvac?.unregisterHvacTemperature(driverSeat, it) }
             fanL?.let { hvac?.unregisterHvacFanSpeed(frontPair, it) }
-            mirrorL?.let { v?.getSideMirror()?.unregisterHvacSideMirrorHeatState(bothMirrors, it) }
         } catch (e: Exception) {
             Log.e(TAG, "구독 해제 실패: ${e.message}")
         }

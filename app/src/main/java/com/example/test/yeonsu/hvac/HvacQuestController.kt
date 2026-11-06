@@ -101,7 +101,6 @@ class HvacQuestController(
             HvacQuest.RECIRC_ON -> "좋아, 내기순환을 켰어!"
             HvacQuest.RECIRC_OFF -> "좋아, 외기 모드로 바꿨어!"
             HvacQuest.DEFROST_ON -> "좋아, 성에 제거를 켰어!"
-            HvacQuest.MIRROR_HEAT_ON -> "좋아, 사이드미러 열선을 켰어!"
         }
         val needOpposite = seq.stage == HvacStage.NEED_OPPOSITE_FIRST
         return when (quest) {
@@ -111,7 +110,6 @@ class HvacQuestController(
             HvacQuest.RECIRC_ON -> if (needOpposite) "내기순환이 이미 켜져 있어. 한 번 껐다가 다시 켜줘." else "내기순환 버튼을 눌러줘."
             HvacQuest.RECIRC_OFF -> if (needOpposite) "이미 외기 모드야. 내기순환을 한 번 켰다가 다시 외기로 바꿔줘." else "내기순환을 꺼서 외기 모드로 바꿔줘."
             HvacQuest.DEFROST_ON -> if (needOpposite) "성에 제거가 이미 켜져 있어. 한 번 껐다가 앞유리 버튼을 다시 눌러줘." else "앞유리 성에 제거 버튼을 눌러줘."
-            HvacQuest.MIRROR_HEAT_ON -> if (needOpposite) "사이드미러 열선이 이미 켜져 있어. 한 번 껐다가 다시 켜줘." else "사이드미러 열선을 켜줘."
         }
     }
 

@@ -88,6 +88,16 @@ class SteeringQuestController(
         /** 이 컨트롤러가 담당하는 퀘스트 ID (운전대 방향). */
         const val QUEST_ID = "vehicle-6-0"
 
-        fun isSteeringQuest(questId: String): Boolean = questId == QUEST_ID
+        /**
+         * 운전대 방향(vehicle-6-0)은 현재 통합 범위에서 자동 판정을 보류한다(항상 false).
+         *
+         * 사유: 각도의 물리적 좌/우(부호) 규약을 독립적으로 확정할 근거가 없다.
+         * - Pleos SDK/SteeringWheel API 에 방향 부호 문서/상수 없음.
+         * - AOSP PERF_STEERING_ANGLE 문서에 좌=양수/음수 명시 없음(업계 관행도 센서는 보통 우=양수로 상반).
+         * - Mac 가상 콘솔은 steering 부호가 SDK 수신값과 반전되어(콘솔 -40 → 앱 +40) 물리 방향 기준이 되지 못함.
+         * 판정 로직(SteeringLeftSequence: 양수=왼쪽, +임계)과 수신 경로 구현은 그대로 두고,
+         * 왼쪽 완료/오른쪽 미완료를 신뢰성 있게 증명할 수 있을 때 다시 연결한다.
+         */
+        fun isSteeringQuest(questId: String): Boolean = false
     }
 }

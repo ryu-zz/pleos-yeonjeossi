@@ -112,8 +112,9 @@ class SteeringQuestControllerTest {
     }
 
     @Test
-    fun 매핑_확인() {
-        assertTrue(SteeringQuestController.isSteeringQuest("vehicle-6-0"))
+    fun 매핑_확인_보류로_대상아님() {
+        // 운전대 방향(6-0)은 물리적 좌/우 부호 근거를 확정 못 해 자동 판정 보류 → 대상 아님.
+        assertEquals(false, SteeringQuestController.isSteeringQuest("vehicle-6-0"))
         assertEquals(false, SteeringQuestController.isSteeringQuest("vehicle-6-1"))
     }
 }
