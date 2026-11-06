@@ -153,10 +153,11 @@ class HvacQuestControllerTest {
     fun 퀘스트ID_매핑_확인() {
         assertTrue(HvacQuestController.isHvacQuest("vehicle-5-0"))
         assertTrue(HvacQuestController.isHvacQuest("vehicle-5-6"))
+        assertTrue(HvacQuestController.isHvacQuest("vehicle-5-8"))
         assertEquals(HvacQuest.FAN_3, HvacQuestController.questKind("vehicle-5-2"))
-        // 송풍 방향(5-3)/사이드미러 열선(5-7)/시트 통풍(5-8)은 자동 판정 대상 아님.
+        assertEquals(HvacQuest.SEAT_VENT_ON, HvacQuestController.questKind("vehicle-5-8"))
+        // 송풍 방향(5-3)/사이드미러 열선(5-7)은 자동 판정 대상 아님.
         assertEquals(false, HvacQuestController.isHvacQuest("vehicle-5-3"))
         assertEquals(false, HvacQuestController.isHvacQuest("vehicle-5-7"))
-        assertEquals(false, HvacQuestController.isHvacQuest("vehicle-5-8"))
     }
 }

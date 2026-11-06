@@ -14,6 +14,7 @@ import ai.pleos.playground.vehicle.listener.HvacAcStateListener
 import ai.pleos.playground.vehicle.listener.HvacDefrosterStateListener
 import ai.pleos.playground.vehicle.listener.HvacFanSpeedListener
 import ai.pleos.playground.vehicle.listener.HvacRecirculationStateListener
+import ai.pleos.playground.vehicle.listener.HvacSeatTemperatureListener
 import ai.pleos.playground.vehicle.listener.HvacTemperatureValueListener
 
 /**
@@ -29,8 +30,7 @@ import ai.pleos.playground.vehicle.listener.HvacTemperatureValueListener
  * - HVAC_TEMPERATURE_SET: areaId 0x1 = 운전석. (config: 15~30℃)
  * - HVAC_FAN_SPEED: areaId 0x5 = 앞 두 좌석. (1~8)
  * - HVAC_DEFROSTER: areaId 0x1 = 앞유리(FRONT_WINDSHIELD).
- * - HVAC_SIDE_MIRROR_HEAT: areaId 0x3 = 좌·우 사이드미러. (0~3)
- * - HVAC_SEAT_VENTILATION: areaId 0x1 = 운전석. (0~3)
+ * - HVAC_SEAT_TEMPERATURE: areaId 0x1 = 운전석. (음수=통풍, 0=끔, 양수=열선; 시트 통풍은 음수 판정)
  *
  * 콜백이 백그라운드 스레드로 올 수 있어 메인 스레드로 넘겨 순서 로직과 같은 스레드에서 처리한다.
  */
@@ -58,6 +58,7 @@ class VehicleHvacSource(
     private var defrostL: HvacDefrosterStateListener? = null
     private var tempL: HvacTemperatureValueListener? = null
     private var fanL: HvacFanSpeedListener? = null
+    private var seatTempL: HvacSeatTemperatureListener? = null
 
     private fun emitInitial(isTarget: Boolean?) {
         Log.d(TAG, "[${quest.questId}] 현재 isTarget=$isTarget")
@@ -81,6 +82,8 @@ class VehicleHvacSource(
     // Float 목표(근사 비교).
     private fun floatEquals(v: Float?, target: Float): Boolean? =
         if (v == null) null else (kotlin.math.abs(v - target) < 0.5f)
+    // Int 음수 목표(시트 통풍: HVAC_SEAT_TEMPERATURE < 0 이 통풍).
+    private fun below0(v: Int?): Boolean? = if (v == null) null else (v < 0)
 
     override fun start(observer: HvacSource.Observer) {
         this.observer = observer
@@ -131,6 +134,16 @@ class VehicleHvacSource(
                     }
                     hvac.registerHvacFanSpeed(frontPair, fanL!!)
                 }
+                HvacQuest.SEAT_VENT_ON -> {
+                    // 통풍/열선이 하나의 HVAC_SEAT_TEMPERATURE 로 표현됨: 음수 = 통풍 단.
+                    val seat = v.getSeat()
+                    seat.getHvacSeatTemperature(driverSeat, { emitInitial(below0(it)) }, { emitInitial(null) })
+                    seatTempL = object : HvacSeatTemperatureListener {
+                        override fun onHvacSeatTemperatureUpdated(level: Int?) = emitUpdate(below0(level))
+                        override fun onFailed(e: Exception) = fail(e)
+                    }
+                    seat.registerHvacSeatTemperature(driverSeat, seatTempL!!)
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "SDK 초기화 실패: ${e.message}")
@@ -148,6 +161,7 @@ class VehicleHvacSource(
             defrostL?.let { hvac?.unregisterHvacDefrosterState(frontWindshield, it) }
             tempL?.let { hvac?.unregisterHvacTemperature(driverSeat, it) }
             fanL?.let { hvac?.unregisterHvacFanSpeed(frontPair, it) }
+            seatTempL?.let { v?.getSeat()?.unregisterHvacSeatTemperature(driverSeat, it) }
         } catch (e: Exception) {
             Log.e(TAG, "구독 해제 실패: ${e.message}")
         }
