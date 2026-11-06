@@ -14,6 +14,7 @@ import com.example.test.yeonsu.headlamp.HeadlampQuestController
 import com.example.test.yeonsu.highbeam.HighBeamQuestController
 import com.example.test.yeonsu.hvac.HvacQuestController
 import com.example.test.yeonsu.lock.DoorLockQuestController
+import com.example.test.yeonsu.polling.PolledQuestController
 import com.example.test.yeonsu.signal.TurnSignalQuestController
 import com.example.test.yeonsu.steering.SteeringQuestController
 import com.example.test.yeonsu.trunk.TrunkQuestController
@@ -57,8 +58,10 @@ class QuestDetailActivity : ScreenActivity() {
     private val isWiperQuest: Boolean get() = WiperQuestController.isWiperQuest(QuestSession.selected().id)
     /** 운전대 각도로 판정하는 퀘스트인지(운전대 방향). */
     private val isSteeringQuest: Boolean get() = SteeringQuestController.isSteeringQuest(QuestSession.selected().id)
-    /** 차량 신호(방향지시등·문·하향등·상향등·창문·문잠금·트렁크·충전구·공조·와이퍼·운전대)로 판정하는 퀘스트인지. */
-    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest || isHighBeamQuest || isWindowQuest || isDoorLockQuest || isTrunkQuest || isChargePortQuest || isHvacQuest || isWiperQuest || isSteeringQuest || isBrakeQuest
+    /** 폴링(주기 조회)으로 판정하는 퀘스트인지(송풍 방향, 자동·저속·고속 와이퍼). */
+    private val isPollQuest: Boolean get() = PolledQuestController.isPollQuest(QuestSession.selected().id)
+    /** 차량 신호(방향지시등·문·하향등·상향등·창문·문잠금·트렁크·충전구·공조·와이퍼·운전대·폴링)로 판정하는 퀘스트인지. */
+    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest || isHighBeamQuest || isWindowQuest || isDoorLockQuest || isTrunkQuest || isChargePortQuest || isHvacQuest || isWiperQuest || isSteeringQuest || isBrakeQuest || isPollQuest
 
     private var controller: TurnSignalQuestController? = null
     private var doorController: DoorQuestController? = null
@@ -72,6 +75,7 @@ class QuestDetailActivity : ScreenActivity() {
     private var hvacController: HvacQuestController? = null
     private var wiperController: WiperQuestController? = null
     private var steeringController: SteeringQuestController? = null
+    private var pollController: PolledQuestController? = null
     /** 차량 신호 경로에서 화면에 보여줄 현재 단계 안내/사유. */
     private var signalGuide: String? = null
     private var signalError: String? = null
@@ -135,6 +139,7 @@ class QuestDetailActivity : ScreenActivity() {
                     isBrakeQuest -> "차량 신호로 확인하는 퀘스트예요 · 브레이크 페달을 직접 밟아보세요"
                     isHvacQuest -> "차량 신호로 확인하는 퀘스트예요 · 공조·시야 기능을 직접 조작하세요"
                     isWiperQuest -> "차량 신호로 확인하는 퀘스트예요 · 와이퍼를 직접 조작하세요"
+                    isPollQuest -> "차량 신호로 확인하는 퀘스트예요 · 주차(P) 상태에서 직접 조작하세요"
                     isSteeringQuest -> "차량 신호로 확인하는 퀘스트예요 · 운전대를 직접 조작하세요"
                     else -> "차량 신호로 확인하는 퀘스트예요 · 방향지시등을 직접 조작하세요"
                 }
@@ -203,6 +208,7 @@ class QuestDetailActivity : ScreenActivity() {
             isBrakeQuest -> startBrake(q)
             isHvacQuest -> startHvac(q)
             isWiperQuest -> startWiper(q)
+            isPollQuest -> startPoll(q)
             isSteeringQuest -> startSteering(q)
         }
         refresh()
@@ -221,6 +227,7 @@ class QuestDetailActivity : ScreenActivity() {
             isBrakeQuest -> stopBrake()
             isHvacQuest -> stopHvac()
             isWiperQuest -> stopWiper()
+            isPollQuest -> stopPoll()
             isSteeringQuest -> stopSteering()
         }
         store.stop(q)
@@ -494,6 +501,31 @@ class QuestDetailActivity : ScreenActivity() {
         wiperController = null
     }
 
+    // ───── 폴링 경로(송풍 방향·와이퍼 단: SDK register 없어 주기 조회) ─────
+    private fun startPoll(q: Quest) {
+        signalError = null
+        if (pollController != null) return
+        val kind = PolledQuestController.questKind(q.id) ?: return
+        pollController = PolledQuestController(applicationContext, object : PolledQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    // 완료 기록은 1건만. completeVerified 가 중복을 막고, 그 뒤 컨트롤러를 내려 추가 콜백을 차단한다.
+                    store.completeVerified(q)
+                    stopPoll()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }, kind).also { it.start() }
+    }
+
+    private fun stopPoll() {
+        pollController?.stop()
+        pollController = null
+    }
+
     // ───── 운전대 경로 ─────
     private fun startSteering(q: Quest) {
         signalError = null
@@ -519,7 +551,7 @@ class QuestDetailActivity : ScreenActivity() {
 
     override fun onStop() {
         // 화면을 떠나면 구독 해제. 중단/이탈 후 도착하는 콜백은 컨트롤러가 무시한다.
-        if (!success) { stopSignal(); stopDoor(); stopHeadlamp(); stopHighBeam(); stopWindow(); stopDoorLock(); stopTrunk(); stopChargePort(); stopBrake(); stopHvac(); stopWiper(); stopSteering() }
+        if (!success) { stopSignal(); stopDoor(); stopHeadlamp(); stopHighBeam(); stopWindow(); stopDoorLock(); stopTrunk(); stopChargePort(); stopBrake(); stopHvac(); stopWiper(); stopPoll(); stopSteering() }
         super.onStop()
     }
 
@@ -535,6 +567,7 @@ class QuestDetailActivity : ScreenActivity() {
         stopBrake()
         stopHvac()
         stopWiper()
+        stopPoll()
         stopSteering()
         super.onDestroy()
     }

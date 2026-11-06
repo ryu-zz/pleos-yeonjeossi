@@ -8,7 +8,8 @@ package com.example.test.yeonsu.hvac
  * - 판정 로직은 공통적으로 "목표 조건 충족 여부(Boolean)"만 쓰므로, 수신원이 각 값을 isTarget 으로 바꿔 올린다.
  *
  * 자동 판정 제외:
- * - 송풍 방향(5-3): SDK 에 상태 변경 리스너(register)가 없어(getter 만 존재) 구독 불가(보류).
+ * - 송풍 방향(5-3): SDK 에 상태 변경 리스너(register)가 없다(getter 만 존재). 이 HvacQuest(register 기반)로는
+ *   다루지 않고, polling 패키지(PollQuest.FAN_DIR_FACE)에서 getHvacFanDirection 주기 조회로 판정한다.
  * - 사이드미러 열선(5-7): 가상 콘솔(기기 테스트 수단)에 HVAC_SIDE_MIRROR_HEAT 조작 항목이 없어 실제 조작으로
  *   왼쪽/오른쪽 또는 켜짐을 검증할 근거가 없다(값 읽기만 가능). 조작 검증 경로가 확인되면 다시 연결한다.
  *
