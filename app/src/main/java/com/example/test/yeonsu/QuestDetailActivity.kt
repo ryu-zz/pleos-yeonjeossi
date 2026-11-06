@@ -7,6 +7,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
+import com.example.test.yeonsu.brake.BrakeQuestController
 import com.example.test.yeonsu.chargeport.ChargePortQuestController
 import com.example.test.yeonsu.door.DoorQuestController
 import com.example.test.yeonsu.headlamp.HeadlampQuestController
@@ -48,6 +49,8 @@ class QuestDetailActivity : ScreenActivity() {
     private val isTrunkQuest: Boolean get() = TrunkQuestController.isTrunkQuest(QuestSession.selected().id)
     /** 충전구 신호로 판정하는 퀘스트인지. */
     private val isChargePortQuest: Boolean get() = ChargePortQuestController.isChargePortQuest(QuestSession.selected().id)
+    /** 브레이크 페달 신호로 판정하는 퀘스트인지(브레이크 위치). */
+    private val isBrakeQuest: Boolean get() = BrakeQuestController.isBrakeQuest(QuestSession.selected().id)
     /** 공조·시야 신호로 판정하는 퀘스트인지. */
     private val isHvacQuest: Boolean get() = HvacQuestController.isHvacQuest(QuestSession.selected().id)
     /** 와이퍼 신호로 판정하는 퀘스트인지(와이퍼 한 번/끄기). */
@@ -55,7 +58,7 @@ class QuestDetailActivity : ScreenActivity() {
     /** 운전대 각도로 판정하는 퀘스트인지(운전대 방향). */
     private val isSteeringQuest: Boolean get() = SteeringQuestController.isSteeringQuest(QuestSession.selected().id)
     /** 차량 신호(방향지시등·문·하향등·상향등·창문·문잠금·트렁크·충전구·공조·와이퍼·운전대)로 판정하는 퀘스트인지. */
-    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest || isHighBeamQuest || isWindowQuest || isDoorLockQuest || isTrunkQuest || isChargePortQuest || isHvacQuest || isWiperQuest || isSteeringQuest
+    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest || isHighBeamQuest || isWindowQuest || isDoorLockQuest || isTrunkQuest || isChargePortQuest || isHvacQuest || isWiperQuest || isSteeringQuest || isBrakeQuest
 
     private var controller: TurnSignalQuestController? = null
     private var doorController: DoorQuestController? = null
@@ -65,6 +68,7 @@ class QuestDetailActivity : ScreenActivity() {
     private var doorLockController: DoorLockQuestController? = null
     private var trunkController: TrunkQuestController? = null
     private var chargePortController: ChargePortQuestController? = null
+    private var brakeController: BrakeQuestController? = null
     private var hvacController: HvacQuestController? = null
     private var wiperController: WiperQuestController? = null
     private var steeringController: SteeringQuestController? = null
@@ -128,6 +132,7 @@ class QuestDetailActivity : ScreenActivity() {
                     isDoorLockQuest -> "차량 신호로 확인하는 퀘스트예요 · 전체 문 잠금을 직접 조작하세요"
                     isTrunkQuest -> "차량 신호로 확인하는 퀘스트예요 · 트렁크를 직접 조작하세요"
                     isChargePortQuest -> "차량 신호로 확인하는 퀘스트예요 · 충전구를 직접 조작하세요"
+                    isBrakeQuest -> "차량 신호로 확인하는 퀘스트예요 · 브레이크 페달을 직접 밟아보세요"
                     isHvacQuest -> "차량 신호로 확인하는 퀘스트예요 · 공조·시야 기능을 직접 조작하세요"
                     isWiperQuest -> "차량 신호로 확인하는 퀘스트예요 · 와이퍼를 직접 조작하세요"
                     isSteeringQuest -> "차량 신호로 확인하는 퀘스트예요 · 운전대를 직접 조작하세요"
@@ -195,6 +200,7 @@ class QuestDetailActivity : ScreenActivity() {
             isDoorLockQuest -> startDoorLock(q)
             isTrunkQuest -> startTrunk(q)
             isChargePortQuest -> startChargePort(q)
+            isBrakeQuest -> startBrake(q)
             isHvacQuest -> startHvac(q)
             isWiperQuest -> startWiper(q)
             isSteeringQuest -> startSteering(q)
@@ -212,6 +218,7 @@ class QuestDetailActivity : ScreenActivity() {
             isDoorLockQuest -> stopDoorLock()
             isTrunkQuest -> stopTrunk()
             isChargePortQuest -> stopChargePort()
+            isBrakeQuest -> stopBrake()
             isHvacQuest -> stopHvac()
             isWiperQuest -> stopWiper()
             isSteeringQuest -> stopSteering()
@@ -415,6 +422,29 @@ class QuestDetailActivity : ScreenActivity() {
         chargePortController = null
     }
 
+    // ───── 브레이크 경로 ─────
+    private fun startBrake(q: Quest) {
+        signalError = null
+        if (brakeController != null) return
+        brakeController = BrakeQuestController(applicationContext, object : BrakeQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    store.completeVerified(q)
+                    stopBrake()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }).also { it.start() }
+    }
+
+    private fun stopBrake() {
+        brakeController?.stop()
+        brakeController = null
+    }
+
     // ───── 공조·시야 경로 ─────
     private fun startHvac(q: Quest) {
         signalError = null
@@ -489,7 +519,7 @@ class QuestDetailActivity : ScreenActivity() {
 
     override fun onStop() {
         // 화면을 떠나면 구독 해제. 중단/이탈 후 도착하는 콜백은 컨트롤러가 무시한다.
-        if (!success) { stopSignal(); stopDoor(); stopHeadlamp(); stopHighBeam(); stopWindow(); stopDoorLock(); stopTrunk(); stopChargePort(); stopHvac(); stopWiper(); stopSteering() }
+        if (!success) { stopSignal(); stopDoor(); stopHeadlamp(); stopHighBeam(); stopWindow(); stopDoorLock(); stopTrunk(); stopChargePort(); stopBrake(); stopHvac(); stopWiper(); stopSteering() }
         super.onStop()
     }
 
@@ -502,6 +532,7 @@ class QuestDetailActivity : ScreenActivity() {
         stopDoorLock()
         stopTrunk()
         stopChargePort()
+        stopBrake()
         stopHvac()
         stopWiper()
         stopSteering()
