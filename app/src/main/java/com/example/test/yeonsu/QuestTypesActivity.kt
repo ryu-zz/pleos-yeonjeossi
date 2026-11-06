@@ -12,7 +12,7 @@ import android.widget.Toast
 import com.example.test.R
 /**
  * 연저씨 · 퀘스트 종류 선택.
- * 디자인 시안(UI image/연저씨의 퀘스트 드라이빙 앱.png)을 화면에 꽉 채워 띄우고,
+ * 디자인 시안(연저씨퀘스트안내_날카로운연저씨.png)을 화면에 꽉 채워 띄우고,
  * 그림 속 버튼 위치마다 투명한 터치 영역을 얹는다.
  */
 class QuestTypesActivity : FadeActivity() {
@@ -27,12 +27,12 @@ class QuestTypesActivity : FadeActivity() {
             addView(img, FrameLayout.LayoutParams(-1, -1))
         }
         val spots = listOf(
-            Triple(RectF(48f, 42f, 125f, 116f), "뒤로") { goTo(HomeActivity::class.java) },
-            Triple(RectF(1152f, 42f, 1230f, 116f), "홈") { goTo(HomeActivity::class.java) },
-            Triple(RectF(1255f, 42f, 1332f, 116f), "설정") { soon("설정") },
-            Triple(RectF(1356f, 42f, 1433f, 116f), "도움말") { soon("도움말") },
-            Triple(RectF(578f, 256f, 1432f, 582f), "차량 퀘스트") { open("vehicle") },
-            Triple(RectF(578f, 617f, 1432f, 938f), "일상 퀘스트") { open("daily") },
+            Triple(RectF(36f, 22f, 104f, 90f), "뒤로") { goTo(HomeActivity::class.java) },
+            Triple(RectF(1252f, 24f, 1322f, 92f), "홈") { goTo(HomeActivity::class.java) },
+            Triple(RectF(1341f, 24f, 1411f, 92f), "설정") { soon("설정") },
+            Triple(RectF(1429f, 24f, 1499f, 92f), "도움말") { soon("도움말") },
+            Triple(RectF(721f, 326f, 1406f, 594f), "차량 퀘스트") { open("vehicle") },
+            Triple(RectF(721f, 642f, 1406f, 910f), "일상 퀘스트") { open("daily") },
         ).map { (rect, name, action) ->
             val v = View(this).apply {
                 isClickable = true; isFocusable = true; contentDescription = name
@@ -80,7 +80,7 @@ class QuestTypesActivity : FadeActivity() {
     private fun soon(name: String) = Toast.makeText(this, "$name 화면은 준비 중이에요", Toast.LENGTH_SHORT).show()
     companion object {
         /** 터치 영역 좌표의 기준 크기 (yeonsu_quest_types.png 원본 픽셀) */
-        private const val SRC_W = 1479f
-        private const val SRC_H = 1064f
+        private const val SRC_W = 1536f
+        private const val SRC_H = 1110f
     }
 }

@@ -22,7 +22,7 @@ import androidx.core.widget.TextViewCompat
 import com.example.test.R
 /**
  * 연저씨 · 퀘스트 완료.
- * 디자인 시안(UI image/운전 퀘스트 완료 화면.png)을 화면에 꽉 채워 띄우고,
+ * 디자인 시안(UI image/운전퀘스트완료_정렬수정.png)을 화면에 꽉 채워 띄우고,
  * 그림 속 버튼 위치마다 투명한 터치 영역을 얹는다.
  */
 class QuestDoneActivity : FadeActivity() {
@@ -40,17 +40,17 @@ class QuestDoneActivity : FadeActivity() {
             scaleType = ImageView.ScaleType.FIT_CENTER
         }
         val root = FrameLayout(this).apply {
-            setBackgroundColor(Color.parseColor("#EAF1FD"))
+            // 배경은 차량 퀘스트 목록(출발 준비) 화면과 같은 그림, 그 위에 버튼·배지만 있는 투명 이미지를 얹음
+            background = androidx.core.content.ContextCompat.getDrawable(this@QuestDoneActivity, R.drawable.yeonsu_list_bg)
             addView(img, FrameLayout.LayoutParams(-1, -1))
             addView(face, FrameLayout.LayoutParams(0, 0))
         }
         val spots = listOf(
-            Triple(RectF(45f, 45f, 128f, 127f), "뒤로") { goTo(QuestListActivity::class.java) },
-            Triple(RectF(1190f, 47f, 1270f, 125f), "홈") { goTo(HomeActivity::class.java) },
-            Triple(RectF(1294f, 47f, 1374f, 125f), "설정") { soon("설정") },
-            Triple(RectF(1398f, 47f, 1478f, 125f), "도움말") { soon("도움말") },
-            Triple(RectF(793f, 870f, 1155f, 977f), "다른 퀘스트") { goTo(QuestListActivity::class.java) },
-            Triple(RectF(1181f, 870f, 1449f, 977f), "기록 보기") { goTo(RecordsActivity::class.java) },
+            Triple(RectF(44f, 38f, 122f, 116f), "뒤로") { goTo(QuestListActivity::class.java) },
+            Triple(RectF(1161f, 38f, 1241f, 116f), "홈") { goTo(HomeActivity::class.java) },
+            Triple(RectF(1264f, 38f, 1344f, 116f), "설정") { soon("설정") },
+            Triple(RectF(1366f, 38f, 1446f, 116f), "도움말") { soon("도움말") },
+            Triple(RectF(905f, 820f, 1313f, 934f), "다른 퀘스트") { goTo(QuestListActivity::class.java) },
         ).map { (rect, name, action) ->
             val v = View(this).apply {
                 isClickable = true; isFocusable = true; contentDescription = name
@@ -85,9 +85,9 @@ class QuestDoneActivity : FadeActivity() {
         titleIndex = titleIdx
         val title = TITLES[titleIdx]
         val texts = listOf(
-            Triple(RectF(927f, 390f, 1425f, 495f), 0, title to Color.parseColor("#1D3878")),
-            Triple(RectF(880f, 525f, 1395f, 660f), 2, descText to Color.parseColor("#5E6D93")),
-            Triple(RectF(876f, 720f, 1419f, 772f), 1, tipText to Color.parseColor("#2D4C9E")),
+            Triple(RectF(849f, 380f, 1430f, 480f), 0, title to Color.parseColor("#1D3878")),
+            Triple(RectF(849f, 515f, 1400f, 645f), 2, descText to Color.parseColor("#5E6D93")),
+            Triple(RectF(850f, 700f, 1410f, 746f), 1, tipText to Color.parseColor("#2D4C9E")),
         ).map { (rect, lines, content) ->
             val t = TextView(this).apply {
                 text = content.first; setTextColor(content.second)
@@ -121,7 +121,7 @@ class QuestDoneActivity : FadeActivity() {
             }
             run {
                 // 캐릭터 자리: 원본 캐릭터처럼 아래 끝이 y=900 선에 맞닿게
-                val r = RectF(-60f * sx, 170f * sy, 800f * sx, 1030f * sy)
+                val r = RectF(-60f * sx, 200f * sy, 790f * sx, 1090f * sy)
                 m.mapRect(r)
                 val lp = face.layoutParams as FrameLayout.LayoutParams
                 val nl = r.left.toInt(); val nt = r.top.toInt(); val nw = r.width().toInt(); val nh = r.height().toInt()
@@ -144,7 +144,15 @@ class QuestDoneActivity : FadeActivity() {
                     t.setLineSpacing(0f, 1.5f)
                     TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(t,
                         (maxPx * 0.6f).toInt().coerceAtLeast(1), maxPx.toInt().coerceAtLeast(2), 1, TypedValue.COMPLEX_UNIT_PX)
-                    t.post { t.layoutParams = lp }
+                    t.post {
+                        t.layoutParams = lp
+                        // 제목·설명의 첫 글자 잉크가 같은 세로선에서 시작하도록 글자 앞 여백만큼 당김
+                        if (lines != 1) t.post {
+                            val b = android.graphics.Rect()
+                            val str = t.text.toString()
+                            if (str.isNotEmpty()) { t.paint.getTextBounds(str, 0, 1, b); t.translationX = -b.left.toFloat() }
+                        }
+                    }
                 }
             }
         }
@@ -177,7 +185,7 @@ class QuestDoneActivity : FadeActivity() {
             "출발 전엔 거울과 안전벨트를 꼭 확인해 주세요!",
         )
         /** 터치 영역 좌표의 기준 크기 (yeonsu_quest_done.png 원본 픽셀) */
-        private const val SRC_W = 1522f
-        private const val SRC_H = 1096f // 원본 1033px에서 아래 배경만 늘림 (버튼 좌표는 그대로)
+        private const val SRC_W = 1490f
+        private const val SRC_H = 1055f // UI image/운전퀘스트완료_정렬수정.png
     }
 }
