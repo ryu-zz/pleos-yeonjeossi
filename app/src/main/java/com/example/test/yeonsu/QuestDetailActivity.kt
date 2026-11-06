@@ -7,9 +7,17 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
+import com.example.test.yeonsu.chargeport.ChargePortQuestController
 import com.example.test.yeonsu.door.DoorQuestController
 import com.example.test.yeonsu.headlamp.HeadlampQuestController
+import com.example.test.yeonsu.highbeam.HighBeamQuestController
+import com.example.test.yeonsu.hvac.HvacQuestController
+import com.example.test.yeonsu.lock.DoorLockQuestController
 import com.example.test.yeonsu.signal.TurnSignalQuestController
+import com.example.test.yeonsu.steering.SteeringQuestController
+import com.example.test.yeonsu.trunk.TrunkQuestController
+import com.example.test.yeonsu.window.WindowQuestController
+import com.example.test.yeonsu.wiper.WiperQuestController
 
 /**
  * 연저씨 · 퀘스트 상세/진행/완료 (HTML detail.js, success).
@@ -30,12 +38,36 @@ class QuestDetailActivity : ScreenActivity() {
     private val isDoorQuest: Boolean get() = DoorQuestController.isDoorQuest(QuestSession.selected().id)
     /** 하향등 신호로 판정하는 퀘스트인지(하향등). */
     private val isHeadlampQuest: Boolean get() = HeadlampQuestController.isHeadlampQuest(QuestSession.selected().id)
-    /** 차량 신호(방향지시등·문·하향등)로 판정하는 퀘스트인지. */
-    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest
+    /** 상향등 신호로 판정하는 퀘스트인지(상향등 켜기/끄기). */
+    private val isHighBeamQuest: Boolean get() = HighBeamQuestController.isHighBeamQuest(QuestSession.selected().id)
+    /** 운전석 창문 신호로 판정하는 퀘스트인지(창문 열기/닫기). */
+    private val isWindowQuest: Boolean get() = WindowQuestController.isWindowQuest(QuestSession.selected().id)
+    /** 전체 문 잠금 신호로 판정하는 퀘스트인지. */
+    private val isDoorLockQuest: Boolean get() = DoorLockQuestController.isDoorLockQuest(QuestSession.selected().id)
+    /** 트렁크 신호로 판정하는 퀘스트인지. */
+    private val isTrunkQuest: Boolean get() = TrunkQuestController.isTrunkQuest(QuestSession.selected().id)
+    /** 충전구 신호로 판정하는 퀘스트인지. */
+    private val isChargePortQuest: Boolean get() = ChargePortQuestController.isChargePortQuest(QuestSession.selected().id)
+    /** 공조·시야 신호로 판정하는 퀘스트인지. */
+    private val isHvacQuest: Boolean get() = HvacQuestController.isHvacQuest(QuestSession.selected().id)
+    /** 와이퍼 신호로 판정하는 퀘스트인지(와이퍼 한 번/끄기). */
+    private val isWiperQuest: Boolean get() = WiperQuestController.isWiperQuest(QuestSession.selected().id)
+    /** 운전대 각도로 판정하는 퀘스트인지(운전대 방향). */
+    private val isSteeringQuest: Boolean get() = SteeringQuestController.isSteeringQuest(QuestSession.selected().id)
+    /** 차량 신호(방향지시등·문·하향등·상향등·창문·문잠금·트렁크·충전구·공조·와이퍼·운전대)로 판정하는 퀘스트인지. */
+    private val isSignalQuest: Boolean get() = isTurnSignalQuest || isDoorQuest || isHeadlampQuest || isHighBeamQuest || isWindowQuest || isDoorLockQuest || isTrunkQuest || isChargePortQuest || isHvacQuest || isWiperQuest || isSteeringQuest
 
     private var controller: TurnSignalQuestController? = null
     private var doorController: DoorQuestController? = null
     private var headlampController: HeadlampQuestController? = null
+    private var highBeamController: HighBeamQuestController? = null
+    private var windowController: WindowQuestController? = null
+    private var doorLockController: DoorLockQuestController? = null
+    private var trunkController: TrunkQuestController? = null
+    private var chargePortController: ChargePortQuestController? = null
+    private var hvacController: HvacQuestController? = null
+    private var wiperController: WiperQuestController? = null
+    private var steeringController: SteeringQuestController? = null
     /** 차량 신호 경로에서 화면에 보여줄 현재 단계 안내/사유. */
     private var signalGuide: String? = null
     private var signalError: String? = null
@@ -91,6 +123,14 @@ class QuestDetailActivity : ScreenActivity() {
                 val hint = when {
                     isDoorQuest -> "차량 신호로 확인하는 퀘스트예요 · 운전석 문을 직접 조작하세요"
                     isHeadlampQuest -> "차량 신호로 확인하는 퀘스트예요 · 전조등을 직접 조작하세요"
+                    isHighBeamQuest -> "차량 신호로 확인하는 퀘스트예요 · 상향등을 직접 조작하세요"
+                    isWindowQuest -> "차량 신호로 확인하는 퀘스트예요 · 운전석 창문을 직접 조작하세요"
+                    isDoorLockQuest -> "차량 신호로 확인하는 퀘스트예요 · 전체 문 잠금을 직접 조작하세요"
+                    isTrunkQuest -> "차량 신호로 확인하는 퀘스트예요 · 트렁크를 직접 조작하세요"
+                    isChargePortQuest -> "차량 신호로 확인하는 퀘스트예요 · 충전구를 직접 조작하세요"
+                    isHvacQuest -> "차량 신호로 확인하는 퀘스트예요 · 공조·시야 기능을 직접 조작하세요"
+                    isWiperQuest -> "차량 신호로 확인하는 퀘스트예요 · 와이퍼를 직접 조작하세요"
+                    isSteeringQuest -> "차량 신호로 확인하는 퀘스트예요 · 운전대를 직접 조작하세요"
                     else -> "차량 신호로 확인하는 퀘스트예요 · 방향지시등을 직접 조작하세요"
                 }
                 panel.addView(tv(hint, 16f, Color.parseColor("#758298"))
@@ -150,6 +190,14 @@ class QuestDetailActivity : ScreenActivity() {
             isTurnSignalQuest -> startSignal(q)
             isDoorQuest -> startDoor(q)
             isHeadlampQuest -> startHeadlamp(q)
+            isHighBeamQuest -> startHighBeam(q)
+            isWindowQuest -> startWindow(q)
+            isDoorLockQuest -> startDoorLock(q)
+            isTrunkQuest -> startTrunk(q)
+            isChargePortQuest -> startChargePort(q)
+            isHvacQuest -> startHvac(q)
+            isWiperQuest -> startWiper(q)
+            isSteeringQuest -> startSteering(q)
         }
         refresh()
     }
@@ -159,6 +207,14 @@ class QuestDetailActivity : ScreenActivity() {
             isTurnSignalQuest -> stopSignal()
             isDoorQuest -> stopDoor()
             isHeadlampQuest -> stopHeadlamp()
+            isHighBeamQuest -> stopHighBeam()
+            isWindowQuest -> stopWindow()
+            isDoorLockQuest -> stopDoorLock()
+            isTrunkQuest -> stopTrunk()
+            isChargePortQuest -> stopChargePort()
+            isHvacQuest -> stopHvac()
+            isWiperQuest -> stopWiper()
+            isSteeringQuest -> stopSteering()
         }
         store.stop(q)
         refresh()
@@ -237,9 +293,203 @@ class QuestDetailActivity : ScreenActivity() {
         headlampController = null
     }
 
+    // ───── 상향등 경로 ─────
+    private fun startHighBeam(q: Quest) {
+        signalError = null
+        if (highBeamController != null) return
+        val kind = HighBeamQuestController.questKind(q.id) ?: return
+        highBeamController = HighBeamQuestController(applicationContext, object : HighBeamQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    // 완료 기록은 1건만. completeVerified 가 중복을 막고, 그 뒤 컨트롤러를 내려 추가 콜백을 차단한다.
+                    store.completeVerified(q)
+                    stopHighBeam()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }, kind).also { it.start() }
+    }
+
+    private fun stopHighBeam() {
+        highBeamController?.stop()
+        highBeamController = null
+    }
+
+    // ───── 운전석 창문 경로 ─────
+    private fun startWindow(q: Quest) {
+        signalError = null
+        if (windowController != null) return
+        val kind = WindowQuestController.questKind(q.id) ?: return
+        windowController = WindowQuestController(applicationContext, object : WindowQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    // 완료 기록은 1건만. completeVerified 가 중복을 막고, 그 뒤 컨트롤러를 내려 추가 콜백을 차단한다.
+                    store.completeVerified(q)
+                    stopWindow()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }, kind).also { it.start() }
+    }
+
+    private fun stopWindow() {
+        windowController?.stop()
+        windowController = null
+    }
+
+    // ───── 전체 문 잠금 경로 ─────
+    private fun startDoorLock(q: Quest) {
+        signalError = null
+        if (doorLockController != null) return
+        doorLockController = DoorLockQuestController(applicationContext, object : DoorLockQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    // 완료 기록은 1건만. completeVerified 가 중복을 막고, 그 뒤 컨트롤러를 내려 추가 콜백을 차단한다.
+                    store.completeVerified(q)
+                    stopDoorLock()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }).also { it.start() }
+    }
+
+    private fun stopDoorLock() {
+        doorLockController?.stop()
+        doorLockController = null
+    }
+
+    // ───── 트렁크 경로 ─────
+    private fun startTrunk(q: Quest) {
+        signalError = null
+        if (trunkController != null) return
+        trunkController = TrunkQuestController(applicationContext, object : TrunkQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    // 완료 기록은 1건만. completeVerified 가 중복을 막고, 그 뒤 컨트롤러를 내려 추가 콜백을 차단한다.
+                    store.completeVerified(q)
+                    stopTrunk()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }).also { it.start() }
+    }
+
+    private fun stopTrunk() {
+        trunkController?.stop()
+        trunkController = null
+    }
+
+    // ───── 충전구 경로 ─────
+    private fun startChargePort(q: Quest) {
+        signalError = null
+        if (chargePortController != null) return
+        chargePortController = ChargePortQuestController(applicationContext, object : ChargePortQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    // 완료 기록은 1건만. completeVerified 가 중복을 막고, 그 뒤 컨트롤러를 내려 추가 콜백을 차단한다.
+                    store.completeVerified(q)
+                    stopChargePort()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }).also { it.start() }
+    }
+
+    private fun stopChargePort() {
+        chargePortController?.stop()
+        chargePortController = null
+    }
+
+    // ───── 공조·시야 경로 ─────
+    private fun startHvac(q: Quest) {
+        signalError = null
+        if (hvacController != null) return
+        val kind = HvacQuestController.questKind(q.id) ?: return
+        hvacController = HvacQuestController(applicationContext, object : HvacQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    // 완료 기록은 1건만. completeVerified 가 중복을 막고, 그 뒤 컨트롤러를 내려 추가 콜백을 차단한다.
+                    store.completeVerified(q)
+                    stopHvac()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }, kind).also { it.start() }
+    }
+
+    private fun stopHvac() {
+        hvacController?.stop()
+        hvacController = null
+    }
+
+    // ───── 와이퍼 경로 ─────
+    private fun startWiper(q: Quest) {
+        signalError = null
+        if (wiperController != null) return
+        val kind = WiperQuestController.questKind(q.id) ?: return
+        wiperController = WiperQuestController(applicationContext, object : WiperQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    store.completeVerified(q)
+                    stopWiper()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }, kind).also { it.start() }
+    }
+
+    private fun stopWiper() {
+        wiperController?.stop()
+        wiperController = null
+    }
+
+    // ───── 운전대 경로 ─────
+    private fun startSteering(q: Quest) {
+        signalError = null
+        if (steeringController != null) return
+        steeringController = SteeringQuestController(applicationContext, object : SteeringQuestController.Callback {
+            override fun onStageChanged(guide: String) { runOnUiThread { signalGuide = guide; signalError = null; refresh() } }
+            override fun onCompleted() {
+                runOnUiThread {
+                    store.completeVerified(q)
+                    stopSteering()
+                    success = true
+                    refresh()
+                }
+            }
+            override fun onError(reason: String) { runOnUiThread { signalError = reason; refresh() } }
+        }).also { it.start() }
+    }
+
+    private fun stopSteering() {
+        steeringController?.stop()
+        steeringController = null
+    }
+
     override fun onStop() {
         // 화면을 떠나면 구독 해제. 중단/이탈 후 도착하는 콜백은 컨트롤러가 무시한다.
-        if (!success) { stopSignal(); stopDoor(); stopHeadlamp() }
+        if (!success) { stopSignal(); stopDoor(); stopHeadlamp(); stopHighBeam(); stopWindow(); stopDoorLock(); stopTrunk(); stopChargePort(); stopHvac(); stopWiper(); stopSteering() }
         super.onStop()
     }
 
@@ -247,6 +497,14 @@ class QuestDetailActivity : ScreenActivity() {
         stopSignal()
         stopDoor()
         stopHeadlamp()
+        stopHighBeam()
+        stopWindow()
+        stopDoorLock()
+        stopTrunk()
+        stopChargePort()
+        stopHvac()
+        stopWiper()
+        stopSteering()
         super.onDestroy()
     }
 }

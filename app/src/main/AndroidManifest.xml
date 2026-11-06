@@ -8,6 +8,7 @@
     <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />  <!-- EvBattery -->
     <uses-permission android:name="pleos.car.permission.CAR_WINDOWS" /> <!-- Wiper, Window -->
     <uses-permission android:name="pleos.car.permission.CAR_LIGHTS" />  <!-- TurnSignal: 방향지시등 퀘스트 판정 -->
+    <uses-permission android:name="pleos.car.permission.CAR_CLIMATE" /> <!-- HVAC: 에어컨·온도·풍량·내기순환·성에제거 퀘스트 판정 -->
 
     <!-- 준비 중 SDK (시험) -->
     <uses-permission android:name="pleos.car.permission.FUSED_LOCATION" /> <!-- 위치 (dangerous: 실행 중 허용 필요) -->
