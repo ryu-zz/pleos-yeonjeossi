@@ -13,8 +13,9 @@ import android.content.Context
  * - stop() 이후 콜백 무시(active=false). null 은 완료 아님.
  * - onError 이후 판정 초기화, 다음 수신부터 재확인. 완료는 1회만 통지.
  *
- * 자동/저속/고속 와이퍼(2-1/2-2/2-3)는 단계(WiperSwitch)를 상태 변경으로 받을 수 없어(SDK register 없음)
- * 이 컨트롤러의 자동 판정 대상이 아니다(보류).
+ * 자동/저속/고속 와이퍼(2-1/2-2/2-3)는 단계(WiperSwitch)를 상태 변경으로 받을 수 없다(SDK register 없음).
+ * 이 컨트롤러(WiperState register 기반)로는 다루지 않고, polling 패키지(PollQuest.WIPER_AUTO/LOW/HIGH)에서
+ * getCurrentWiperSwitch 주기 조회로 판정한다.
  *
  * SDK 에 직접 의존하지 않으므로(가짜 WiperSource 주입) JVM 단위 테스트가 가능하다.
  */
