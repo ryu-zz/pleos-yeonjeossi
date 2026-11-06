@@ -127,7 +127,7 @@ class HvacQuestControllerTest {
 
     @Test
     fun onError후_초기화_재연결시_다시판정() {
-        val (src, cb, _) = setup(HvacQuest.SEAT_VENT_ON)
+        val (src, cb, _) = setup(HvacQuest.MIRROR_HEAT_ON)
         src.initial(false)
         src.error("연결 끊김")
         assertEquals(1, cb.errorCount)
@@ -152,9 +152,10 @@ class HvacQuestControllerTest {
     @Test
     fun 퀘스트ID_매핑_확인() {
         assertTrue(HvacQuestController.isHvacQuest("vehicle-5-0"))
-        assertTrue(HvacQuestController.isHvacQuest("vehicle-5-8"))
+        assertTrue(HvacQuestController.isHvacQuest("vehicle-5-7"))
         assertEquals(HvacQuest.FAN_3, HvacQuestController.questKind("vehicle-5-2"))
-        // 송풍 방향(5-3)은 보류이므로 대상 아님.
+        // 송풍 방향(5-3)은 보류, 시트 통풍(5-8)은 읽기 경로 불일치로 자동 판정 대상 아님.
         assertEquals(false, HvacQuestController.isHvacQuest("vehicle-5-3"))
+        assertEquals(false, HvacQuestController.isHvacQuest("vehicle-5-8"))
     }
 }

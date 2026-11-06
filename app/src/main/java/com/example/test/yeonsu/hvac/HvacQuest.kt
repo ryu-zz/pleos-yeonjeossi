@@ -4,10 +4,13 @@ package com.example.test.yeonsu.hvac
  * 공조·시야 퀘스트(cat5) 종류와 판정 규칙 정의 (SDK 비의존).
  *
  * 각 퀘스트는 "차량에서 읽은 하나의 값이 목표 조건을 만족하는가(isTarget)"로 환원된다.
- * - Boolean 값(에어컨/내기순환/외기/성에제거) 또는 Int 레벨(풍량/사이드미러열선/시트통풍) 또는 Float(온도).
+ * - Boolean 값(에어컨/내기순환/외기/성에제거) 또는 Int 레벨(사이드미러열선) 또는 Float(온도). 풍량은 Int 목표값.
  * - 판정 로직은 공통적으로 "목표 조건 충족 여부(Boolean)"만 쓰므로, 수신원이 각 값을 isTarget 으로 바꿔 올린다.
  *
- * 송풍 방향(5-3)은 SDK 에 상태 변경 리스너(register)가 없어(getter 만 존재) 자동 판정 대상에서 제외(보류)한다.
+ * 자동 판정 제외:
+ * - 송풍 방향(5-3): SDK 에 상태 변경 리스너(register)가 없어(getter 만 존재) 구독 불가(보류).
+ * - 시트 통풍(5-8): 이 플랫폼은 통풍을 음수 HVAC_SEAT_TEMPERATURE 로 표현하고 HVAC_SEAT_VENTILATION 은
+ *   구동되지 않아, getHvacSeatVentilation 구독으로는 통풍 조작 값이 오지 않는다. 읽기 경로가 확인되면 다시 연결한다.
  */
 enum class HvacQuest(val questId: String) {
     /** 에어컨 켜기(vehicle-5-0): HVAC_AC_ON == true. 조작 연습형(끔→켬). */
@@ -23,9 +26,8 @@ enum class HvacQuest(val questId: String) {
     /** 앞유리 성에 제거(vehicle-5-6): HVAC_DEFROSTER(앞유리) == true. 조작 연습형(끔→켬). */
     DEFROST_ON("vehicle-5-6"),
     /** 사이드미러 열선(vehicle-5-7): HVAC_SIDE_MIRROR_HEAT 레벨 > 0. 조작 연습형(0→>0). */
-    MIRROR_HEAT_ON("vehicle-5-7"),
-    /** 시트 통풍 1단계 이상(vehicle-5-8): HVAC_SEAT_VENTILATION 레벨 > 0. 조작 연습형(0→>0). */
-    SEAT_VENT_ON("vehicle-5-8");
+    MIRROR_HEAT_ON("vehicle-5-7");
+    // 시트 통풍(vehicle-5-8)은 자동 판정 대상에서 제외(위 주석 참조). 읽기 경로 확인 시 재추가.
 
     /**
      * 시작 시 이미 목표 상태일 때, 바로 완료하지 않고 반대 상태를 한 번 거쳐야 하는지.

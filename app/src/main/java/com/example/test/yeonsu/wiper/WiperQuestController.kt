@@ -85,13 +85,14 @@ class WiperQuestController(
     }
 
     companion object {
-        /** 와이퍼 한 번 퀘스트 ID. */
-        const val QUEST_ID_ON = "vehicle-2-0"
         /** 와이퍼 끄기 퀘스트 ID. */
         const val QUEST_ID_OFF = "vehicle-2-4"
 
+        // 와이퍼 한 번(vehicle-2-0)은 자동 판정 대상에서 제외한다.
+        // 플랫폼 와이퍼 상태는 OFF/ON 만 구분하고(Low/High/Auto 가 모두 ON), '한 번 단발' 조작을
+        // 연속 작동과 구분할 수 없어 연속 작동만으로도 완료될 수 있기 때문이다.
+        // 끄기(ON→OFF)는 단발 구분이 필요 없으므로 자동 판정을 유지한다.
         private val BY_ID = mapOf(
-            QUEST_ID_ON to WiperQuest.ON,
             QUEST_ID_OFF to WiperQuest.OFF,
         )
 

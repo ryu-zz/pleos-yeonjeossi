@@ -108,10 +108,13 @@ class WiperQuestControllerTest {
     }
 
     @Test
-    fun 매핑_확인_단계형은대상아님() {
-        assertTrue(WiperQuestController.isWiperQuest("vehicle-2-0"))
+    fun 매핑_확인_끄기만대상() {
+        // 와이퍼 끄기(2-4)만 자동 판정 대상.
         assertTrue(WiperQuestController.isWiperQuest("vehicle-2-4"))
-        // 자동/저속/고속(2-1/2-2/2-3)은 보류 → 대상 아님.
+        assertEquals(WiperQuest.OFF, WiperQuestController.questKind("vehicle-2-4"))
+        // 와이퍼 한 번(2-0)은 단발 구분 불가로 제외.
+        assertEquals(false, WiperQuestController.isWiperQuest("vehicle-2-0"))
+        // 자동/저속/고속(2-1/2-2/2-3)은 단계 구독 불가로 제외.
         assertEquals(false, WiperQuestController.isWiperQuest("vehicle-2-1"))
         assertEquals(false, WiperQuestController.isWiperQuest("vehicle-2-2"))
         assertEquals(false, WiperQuestController.isWiperQuest("vehicle-2-3"))

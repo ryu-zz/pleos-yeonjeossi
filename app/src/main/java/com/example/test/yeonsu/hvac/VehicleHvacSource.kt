@@ -16,7 +16,6 @@ import ai.pleos.playground.vehicle.listener.HvacAcStateListener
 import ai.pleos.playground.vehicle.listener.HvacDefrosterStateListener
 import ai.pleos.playground.vehicle.listener.HvacFanSpeedListener
 import ai.pleos.playground.vehicle.listener.HvacRecirculationStateListener
-import ai.pleos.playground.vehicle.listener.HvacSeatVentilationListener
 import ai.pleos.playground.vehicle.listener.HvacSideMirrorHeatStateListener
 import ai.pleos.playground.vehicle.listener.HvacTemperatureValueListener
 
@@ -64,7 +63,6 @@ class VehicleHvacSource(
     private var tempL: HvacTemperatureValueListener? = null
     private var fanL: HvacFanSpeedListener? = null
     private var mirrorL: HvacSideMirrorHeatStateListener? = null
-    private var seatVentL: HvacSeatVentilationListener? = null
 
     private fun emitInitial(isTarget: Boolean?) {
         Log.d(TAG, "[${quest.questId}] 현재 isTarget=$isTarget")
@@ -98,7 +96,6 @@ class VehicleHvacSource(
             v.initialize()
             vehicle = v
             val hvac = v.getHVAC()
-            val seat = v.getSeat()
             val mirror = v.getSideMirror()
             when (quest) {
                 HvacQuest.AC_ON -> {
@@ -150,14 +147,6 @@ class VehicleHvacSource(
                     }
                     mirror.registerHvacSideMirrorHeatState(bothMirrors, mirrorL!!)
                 }
-                HvacQuest.SEAT_VENT_ON -> {
-                    seat.getHvacSeatVentilationState(driverSeat, { emitInitial(levelOn(it)) }, { emitInitial(null) })
-                    seatVentL = object : HvacSeatVentilationListener {
-                        override fun onHvacSeatVentilationUpdated(level: Int?) = emitUpdate(levelOn(level))
-                        override fun onFailed(e: Exception) = fail(e)
-                    }
-                    seat.registerHvacSeatVentilation(driverSeat, seatVentL!!)
-                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "SDK 초기화 실패: ${e.message}")
@@ -176,7 +165,6 @@ class VehicleHvacSource(
             tempL?.let { hvac?.unregisterHvacTemperature(driverSeat, it) }
             fanL?.let { hvac?.unregisterHvacFanSpeed(frontPair, it) }
             mirrorL?.let { v?.getSideMirror()?.unregisterHvacSideMirrorHeatState(bothMirrors, it) }
-            seatVentL?.let { v?.getSeat()?.unregisterHvacSeatVentilation(driverSeat, it) }
         } catch (e: Exception) {
             Log.e(TAG, "구독 해제 실패: ${e.message}")
         }
