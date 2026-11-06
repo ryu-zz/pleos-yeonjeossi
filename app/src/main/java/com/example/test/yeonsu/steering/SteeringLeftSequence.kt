@@ -4,11 +4,17 @@ package com.example.test.yeonsu.steering
  * '운전대 방향' 퀘스트(vehicle-6-0, "운전대를 왼쪽으로 조금 돌려보세요")의 순서 판정 로직
  * (SDK 비의존, 순수 Kotlin).
  *
- * 각도 부호 규칙(AAOS PERF_STEERING_ANGLE / Pleos SteeringWheel):
- * - 양수(+) = 왼쪽(반시계), 음수(-) = 오른쪽. (범위 대략 -470~500도)
+ * 각도 부호 규칙(현재 빌드 SDK 정의를 그대로 따른다):
+ * - Pleos Vehicle SDK 2.3.2 소스 KDoc(SteeringWheel.getCurrentSteeringWheelAngle,
+ *   registerSteeringWheelAngle, SteeringWheelAngleListener.onSteeringWheelAngleUpdated)에
+ *   "Leftward steering angles are negative." 로 명시됨. 즉 '앞바퀴 조향각'이며 왼쪽 = 음수(-).
+ * - 따라서 왼쪽으로 돌리면 수신 각도가 기준보다 작아진다(음의 변화량).
+ * - 이 값은 운전대 자체의 회전각이 아니라 앞바퀴 조향각이다(SDK 문구 그대로).
+ * - 주의: 가상 콘솔의 steering_deg 스칼라/운전대 위젯(CSS rotate)은 같은 값으로 그려지므로
+ *   물리 좌/우의 독립 근거가 아니다. 방향 판정은 오직 위 SDK 정의에 근거한다.
  *
  * 조작 연습형(움직임 감지):
- * - 시작 각도를 기준으로 삼고, 거기서 왼쪽으로 THRESHOLD(도) 이상 돌리면 완료한다.
+ * - 시작 각도를 기준으로 삼고, 거기서 왼쪽으로(= 음의 방향으로) THRESHOLD(도) 이상 돌리면 완료한다.
  * - "조금 돌려보세요"이므로 완만한 임계값(기본 15도)을 쓴다.
  * - 시작 각도 자체는 완료 근거가 아니다(반드시 '시작 이후의 왼쪽 변화'로만 완료).
  * - null(불명)은 완료로 취급하지 않는다(기준/단계 유지).
@@ -37,8 +43,8 @@ class SteeringLeftSequence(initial: Float?, private val thresholdDeg: Float = DE
             baseline = angle
             return false
         }
-        // 양수 = 왼쪽. 기준보다 THRESHOLD 이상 커지면(왼쪽으로 돈 것) 완료.
-        if (angle - base >= thresholdDeg) {
+        // SDK 정의: 왼쪽 = 음수. 기준보다 THRESHOLD 이상 작아지면(왼쪽으로 돈 것) 완료.
+        if (base - angle >= thresholdDeg) {
             done = true
             return true
         }
