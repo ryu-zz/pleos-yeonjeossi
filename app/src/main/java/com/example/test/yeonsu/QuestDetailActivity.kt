@@ -65,22 +65,26 @@ class QuestDetailActivity : ScreenActivity() {
         val card = LinearLayout(this).apply {
             orientation = if (compact) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
             background = softCard()
-            setPadding(px(22f + SH), px(50f + SH), px(40f + SH), px(50f + SH))
+            setPadding(px(51f + SH), px(50f + SH), px(40f + SH), px(50f + SH))
             minimumHeight = px(700f + SH * 2f)
             gravity = Gravity.CENTER_VERTICAL
         }
 
         // 왼쪽: 퀘스트 사진 (없으면 연저씨 포즈)
         val imgId = resources.getIdentifier("quest_img_${q.c}_${QuestSession.questIndex}", "drawable", packageName)
+        // 새 3:2 사진(출발 준비·방향지시등·와이퍼)은 칸을 꽉 채우고, 나머지 옛 사진은 잘리지 않게 맞춘다.
+        val fullPhoto = true
         val photo: View = if (vehicle && imgId != 0) ImageView(this).apply {
-            setImageResource(imgId); scaleType = ImageView.ScaleType.FIT_CENTER; adjustViewBounds = true
+            setImageResource(imgId)
+            if (fullPhoto) scaleType = ImageView.ScaleType.CENTER_CROP
+            else { scaleType = ImageView.ScaleType.FIT_CENTER; adjustViewBounds = true }
             clipToOutline = true
             outlineProvider = object : android.view.ViewOutlineProvider() {
                 override fun getOutline(v: View, o: android.graphics.Outline) { o.setRoundRect(0, 0, v.width, v.height, px(40f).toFloat()) }
             }
         } else pose(0)
         if (compact) card.addView(photo, LinearLayout.LayoutParams(-1, px(420f)))
-        else card.addView(photo, LinearLayout.LayoutParams(px(790f), -2))
+        else card.addView(photo, LinearLayout.LayoutParams(px(691f), if (vehicle && fullPhoto) px(527f) else -2))
 
         // 오른쪽: 글자와 버튼
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }

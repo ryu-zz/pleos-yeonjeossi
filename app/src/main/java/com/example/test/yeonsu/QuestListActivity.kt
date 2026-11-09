@@ -67,7 +67,14 @@ class QuestListActivity : ScreenActivity() {
         QuestData.names(type, QuestSession.category).forEachIndexed { i, _ ->
             list.addView(questCard(i), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(20f); leftMargin = dp(2f); rightMargin = dp(4f) })
         }
-        right.addView(ScrollView(this).apply { addView(list); isVerticalScrollBarEnabled = false; clipToPadding = false; setPadding(0, dp(4f), 0, dp(8f)) }, LinearLayout.LayoutParams(-1, 0, 1f))
+        // 퀘스트를 하고 돌아와도 보던 위치에서 다시 시작한다 (다른 카테고리로 바꾸면 맨 위부터).
+        val key = "$type/${QuestSession.category}"
+        if (key != listKey) { listKey = key; listScroll = 0 }
+        right.addView(ScrollView(this).apply {
+            addView(list); isVerticalScrollBarEnabled = false; clipToPadding = false; setPadding(0, dp(4f), 0, dp(8f))
+            post { scrollTo(0, listScroll) }
+            viewTreeObserver.addOnScrollChangedListener { if (isAttachedToWindow) listScroll = scrollY }
+        }, LinearLayout.LayoutParams(-1, 0, 1f))
 
         val root = LinearLayout(this).apply {
             orientation = if (compact) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL
@@ -103,7 +110,7 @@ class QuestListActivity : ScreenActivity() {
     }
     /** 선택된 카테고리 항목 (스크롤 가운데로 옮길 대상) */
     private var selItem: View? = null
-    companion object { var catScroll = 0 }
+    companion object { var catScroll = 0; var listScroll = 0; var listKey = "" }
     private fun questCard(i: Int): View {
         val q = QuestData.quest(QuestSession.type, QuestSession.category, i)
         val st = store.state(q).status
