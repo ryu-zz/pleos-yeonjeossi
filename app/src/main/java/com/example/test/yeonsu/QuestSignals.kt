@@ -32,6 +32,7 @@ object QuestSignals {
     private val brake = r<Boolean> { v, ok, f -> v.getBrake().getCurrentBrakePedalStatus(ok, f) }
     private val turn = r<Any> { v, ok, f -> v.getTurnSignal().getCurrentTurnSignalState(ok, f) }
     private val wiper = r<Any> { v, ok, f -> v.getWiper().getCurrentWiperSwitch(WindowArea(WindowValue.FRONT_WINDSHIELD), ok, f) }
+    private val wiperOn = r<Any> { v, ok, f -> v.getWiper().getCurrentWiperState(WindowArea(WindowValue.FRONT_WINDSHIELD), ok, f) }
     private val low = r<Any> { v, ok, f -> v.getLight().getCurrentLowBeamLightState(ok, f) }
     private val high = r<Any> { v, ok, f -> v.getLight().getCurrentHighBeamLightState(ok, f) }
     private val ac = r<Boolean> { v, ok, f -> v.getHVAC().getHvacAcState(hvacAll, ok, f) }
@@ -53,6 +54,8 @@ object QuestSignals {
         "왼쪽 방향지시등" to Detector("왼쪽 방향지시등을 켜면 자동으로 완료돼요$RETRY", turn, becomes { str(it) == "LEFT" }),
         "오른쪽 방향지시등" to Detector("오른쪽 방향지시등을 켜면 자동으로 완료돼요$RETRY", turn, becomes { str(it) == "RIGHT" }),
         "방향지시등 끄기" to Detector("방향지시등을 켰다가 끄면 자동으로 완료돼요", turn, becomes { str(it) == "OFF" }),
+        // "한 번 작동"은 단발(MIST) 위치를 읽을 수 없어서, 꺼져 있던 와이퍼가 작동 상태(ON)가 되면 완료로 본다
+        "와이퍼 한 번" to Detector("꺼진 와이퍼를 작동시키면 자동으로 완료돼요 (어떤 모드든 괜찮아요)", wiperOn, becomes { str(it) == "ON" }),
         "자동 와이퍼" to Detector("와이퍼를 AUTO에 놓으면 자동으로 완료돼요$RETRY", wiper, becomes { str(it) == "AUTO" }),
         "저속 와이퍼" to Detector("와이퍼를 LOW에 놓으면 자동으로 완료돼요$RETRY", wiper, becomes { str(it) == "CONTINUOUS_LEVEL_1" }),
         "고속 와이퍼" to Detector("와이퍼를 HIGH에 놓으면 자동으로 완료돼요$RETRY", wiper, becomes { str(it) == "CONTINUOUS_LEVEL_3" }),
