@@ -20,7 +20,7 @@ class QuestListActivity : ScreenActivity() {
     override fun helpItems(): List<HelpItem>? {
         val c = catPanel ?: return null; val l = listPanel ?: return null
         return if (QuestSession.type == "vehicle") listOf(
-            HelpItem(c, "카테고리 10개", "출발 준비부터 비상상황까지\n주제별로 나뉘어 있어요", HelpPlace.RIGHT, 0.22f),
+            HelpItem(c, "카테고리 8개", "출발 준비부터 전기차까지\n주제별로 나뉘어 있어요", HelpPlace.RIGHT, 0.22f),
             HelpItem(l, "차량 퀘스트", "각 카테고리 안의 다양한 퀘스트를 깨볼 수 있어요\n한 카테고리를 다 깨면 뱃지를 받을 수 있어요", HelpPlace.OVER_MID, 0.62f),
         ) else listOf(
             HelpItem(c, "카테고리 9개", "차 관리부터 도전까지\n상황별로 나뉘어 있어요", HelpPlace.RIGHT, 0.22f),

@@ -54,7 +54,6 @@ object QuestSignals {
     private val high = r<Any> { v, ok, f -> v.getLight().getCurrentHighBeamLightState(ok, f) }
     private val ac = r<Boolean> { v, ok, f -> v.getHVAC().getHvacAcState(hvacAll, ok, f) }
     private val recirc = r<Boolean> { v, ok, f -> v.getHVAC().getHvacRecirculationState(hvacAll, ok, f) }
-    private val fanSpeed = r<Int> { v, ok, f -> v.getHVAC().getHvacFanSpeed(row1, ok, f) }
     private val fanDir = r<Any> { v, ok, f -> v.getHVAC().getHvacFanDirection(row1, ok, f) }
     private val temp = r<Float> { v, ok, f -> v.getHVAC().getHvacTemperature(seatL, TemperatureUnit.CELSIUS, ok, f) }
     private val defrost = r<Boolean> { v, ok, f -> v.getHVAC().getHvacDefrosterState(WindowArea(WindowValue.FRONT_WINDSHIELD), ok, f) }
@@ -81,7 +80,6 @@ object QuestSignals {
         "트렁크 열었다가 닫기" to pair("트렁크를 열면 첫 단계가 끝나요", "트렁크를 닫으면 자동으로 완료돼요", trunk) { num(it) > 0 },
         "에어컨 켰다가 끄기" to pair("A/C를 켜면 첫 단계가 끝나요", "A/C를 끄면 자동으로 완료돼요", ac) { it == true },
         "온도 조절" to single("운전석 온도를 22도로 맞추면 자동으로 완료돼요", temp) { num(it) == 22.0 },
-        "풍량 조절" to single("풍량을 3단계로 맞추면 자동으로 완료돼요", fanSpeed) { num(it) == 3.0 },
         "송풍 방향" to single("바람 방향을 얼굴 쪽으로 바꾸면 자동으로 완료돼요", fanDir) { str(it).contains("FACE") },
         "내기순환 켰다가 외기로" to pair("내기순환을 켜면 첫 단계가 끝나요", "외기 모드로 돌리면 자동으로 완료돼요", recirc) { it == true },
         "앞유리 성에 제거 켰다가 끄기" to pair("성에 제거를 켜면 첫 단계가 끝나요", "성에 제거를 끄면 자동으로 완료돼요", defrost) { it == true },
