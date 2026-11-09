@@ -49,6 +49,7 @@ object QuestData {
             Tutorial("송풍 방향", "바람 방향을 얼굴 쪽으로 바꿔보세요.", "좋아요. 바람 방향을 바꿨어요.", "확인 가능"),
             Tutorial("내기순환 켰다가 외기로", "내기순환을 켰다가 다시 외기 모드로 바꿔보세요.", "좋아요. 내기순환을 켰다가 외기로 돌렸어요.", "확인 가능", listOf("내기순환 버튼을 눌러보세요", "다시 외기 모드로 바꿔보세요")),
             Tutorial("앞유리 성에 제거 켰다가 끄기", "앞유리 성에 제거를 켰다가 꺼보세요.", "좋아요. 성에 제거를 켰다가 껐어요.", "확인 가능", listOf("앞유리 모양 버튼을 눌러 켜보세요", "버튼을 다시 눌러 꺼보세요")),
+            Tutorial("뒷유리 열선 켰다가 끄기", "뒷유리 열선을 켰다가 꺼보세요.", "좋아요. 뒷유리 열선을 켰다가 껐어요.", "확인 가능", listOf("뒷유리 열선 버튼을 눌러 켜보세요", "버튼을 다시 눌러 꺼보세요")),
             Tutorial("시트 통풍 켰다가 끄기", "시트 통풍을 1단계로 켰다가 꺼보세요.", "좋아요. 시트 통풍을 켰다가 껐어요.", "확인 가능", listOf("시트 통풍을 1단계로 켜보세요", "시트 통풍을 꺼보세요")),
         ),
         listOf(
@@ -141,6 +142,7 @@ object QuestData {
         "송풍 방향" to "얼굴 쪽은 시원하게, 발 쪽은 따뜻하게, 앞유리 쪽은 김서림 제거!",
         "내기순환 켰다가 외기로" to "터널이나 매연 많은 길에서 쓰기! 오래 켜두면 졸리니 가끔 환기!",
         "앞유리 성에 제거 켰다가 끄기" to "앞유리에 김이 서려 안 보일 때 바로! 에어컨과 같이 켜면 더 빨라요.",
+        "뒷유리 열선 켰다가 끄기" to "뒷유리에 김이 서리거나 성에가 꼈을 때 켜요! 다 녹으면 꺼서 전기를 아끼기!",
         "시트 통풍 켰다가 끄기" to "겨울엔 열선, 여름엔 통풍! 1단계부터 약하게 시작해요.",
         "운전대 왼쪽으로 돌렸다가 풀기" to "왼쪽으로 돌리면 차도 왼쪽으로! 한 번에 크게 말고 부드럽게!",
         "크루즈 켰다가 끄기" to "막히지 않는 길에서 속도를 유지해줘요. 브레이크를 밟으면 바로 해제돼요!",
@@ -174,6 +176,17 @@ object QuestData {
     }
 }
 
+/** 전기차 모드: 켜져 있을 때만 차량 퀘스트에 "전기차" 카테고리(맨 마지막)가 보인다. */
+object EvMode {
+    private fun prefs(c: Context) = c.getSharedPreferences("yeonsu_quest", Context.MODE_PRIVATE)
+    fun isOn(c: Context) = prefs(c).getBoolean("evMode", false)
+    fun set(c: Context, on: Boolean) { prefs(c).edit().putBoolean("evMode", on).apply() }
+    /** 지금 보여줄 카테고리 이름들. */
+    fun cats(c: Context, type: String): List<String> {
+        val all = QuestData.cats.getValue(type)
+        return if (type == "vehicle" && !isOn(c)) all.dropLast(1) else all
+    }
+}
 /** 일상 퀘스트 시나리오 흐름의 현재 단계. */
 object QuestFlow {
     const val INTRO = 0   // 처음 시나리오 보는 중

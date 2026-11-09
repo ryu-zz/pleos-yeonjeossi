@@ -80,6 +80,8 @@ abstract class ScreenActivity : FadeActivity() {
         v.setOnHierarchyChangeListener(unclipListener)
         for (i in 0 until v.childCount) unclip(v.getChildAt(i))
     }
+    /** 헤더 오른쪽 아이콘들 왼쪽에 끼워 넣을 화면별 버튼(없으면 null). */
+    protected open fun headerExtra(): View? = null
     private fun buildHeader(h: Int): View {
         val row = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
@@ -90,6 +92,7 @@ abstract class ScreenActivity : FadeActivity() {
         row.addView(ImageView(this).apply { setImageResource(R.drawable.ic_y_wheel) }, LinearLayout.LayoutParams(dp(40f), dp(40f)))
         row.addView(tv("연저씨", 30f, NAVY, true).apply { setPadding(dp(12f), 0, 0, 0) },
             LinearLayout.LayoutParams(0, -2, 1f))
+        headerExtra()?.let { row.addView(it, LinearLayout.LayoutParams(-2, dp(56f)).apply { leftMargin = dp(12f) }) }
         listOf(R.drawable.ic_y_home to "홈", R.drawable.ic_y_settings to "설정", R.drawable.ic_y_help to "도움말").forEach { (ic, name) ->
             row.addView(iconButton(ic, 56f) {
                 if (name == "홈") goTo(HomeActivity::class.java)

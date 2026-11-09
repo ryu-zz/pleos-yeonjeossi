@@ -58,6 +58,7 @@ object QuestSignals {
     private val fanDir = r<Any> { v, ok, f -> v.getHVAC().getHvacFanDirection(row1, ok, f) }
     private val temp = r<Float> { v, ok, f -> v.getHVAC().getHvacTemperature(seatL, TemperatureUnit.CELSIUS, ok, f) }
     private val defrost = r<Boolean> { v, ok, f -> v.getHVAC().getHvacDefrosterState(WindowArea(WindowValue.FRONT_WINDSHIELD), ok, f) }
+    private val rearDefrost = r<Boolean> { v, ok, f -> v.getHVAC().getHvacDefrosterState(WindowArea(WindowValue.REAR_WINDSHIELD), ok, f) }
     private val seatTemp = r<Int> { v, ok, f -> v.getSeat().getHvacSeatTemperature(seatL, ok, f) }
     private val wheel = r<Float> { v, ok, f -> v.getSteeringWheel().getCurrentSteeringWheelAngle(ok, f) }
     private val cruise = r<Any> { v, ok, f -> v.getDrivingMode().getCruiseControlState(ok, f) }
@@ -85,6 +86,7 @@ object QuestSignals {
         "송풍 방향" to single("바람 방향을 얼굴 쪽으로 바꾸면 자동으로 완료돼요", fanDir) { str(it).contains("FACE") },
         "내기순환 켰다가 외기로" to pair("내기순환을 켜면 첫 단계가 끝나요", "외기 모드로 돌리면 자동으로 완료돼요", recirc) { it == true },
         "앞유리 성에 제거 켰다가 끄기" to pair("성에 제거를 켜면 첫 단계가 끝나요", "성에 제거를 끄면 자동으로 완료돼요", defrost) { it == true },
+        "뒷유리 열선 켰다가 끄기" to pair("뒷유리 열선을 켜면 첫 단계가 끝나요", "열선을 끄면 자동으로 완료돼요", rearDefrost) { it == true },
         "시트 통풍 켰다가 끄기" to pair("시트 통풍 1단계를 켜면 첫 단계가 끝나요", "통풍을 끄면 자동으로 완료돼요", seatTemp) { num(it) == -1.0 },
         // SDK 정의: 왼쪽으로 조향하면 각도가 음수(에뮬레이터 콘솔은 부호가 반대로 전달됨). 끄기 단계는 가운데로 돌아오는 것
         "운전대 왼쪽으로 돌렸다가 풀기" to pair("운전대를 왼쪽으로 돌리면 첫 단계가 끝나요", "가운데로 돌려놓으면 자동으로 완료돼요", wheel) { num(it) < -5.0 },

@@ -44,8 +44,8 @@ class RecordsActivity : ScreenActivity() {
 
         // 나의 뱃지: 차량 퀘스트 / 일상 퀘스트를 각각 따로 묶은 카드. 받았으면 금색, 아직이면 흐리게
         val badgeBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val earnedN = listOf("vehicle", "daily").sumOf { t -> QuestData.cats.getValue(t).indices.count { store.hasBadge(t, it) } }
-        val totalN = QuestData.cats.values.sumOf { it.size }
+        val earnedN = listOf("vehicle", "daily").sumOf { t -> EvMode.cats(this, t).indices.count { store.hasBadge(t, it) } }
+        val totalN = listOf("vehicle", "daily").sumOf { EvMode.cats(this, it).size }
         badgeBox.addView(LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
             addView(tv("나의 뱃지", 30f, ScreenActivity.NAVY, true), LinearLayout.LayoutParams(0, -2, 1f))
@@ -53,7 +53,7 @@ class RecordsActivity : ScreenActivity() {
         }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12f) })
         val cardsRow = LinearLayout(this).apply { orientation = if (compact) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL }
         listOf("vehicle" to "차량 퀘스트", "daily" to "일상 퀘스트").forEachIndexed { idx, (t, label) ->
-            val names = QuestData.cats.getValue(t)
+            val names = EvMode.cats(this, t)
             val got = names.indices.count { store.hasBadge(t, it) }
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL

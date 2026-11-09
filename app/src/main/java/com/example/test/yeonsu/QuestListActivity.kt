@@ -14,13 +14,28 @@ class QuestListActivity : ScreenActivity() {
     override val parentScreen: Class<out Activity> = QuestTypesActivity::class.java
     private val store by lazy { QuestStore(this) }
 
+    /** 차량 퀘스트에서만: 전기차 모드 켜기/끄기 버튼. 켜면 왼쪽 카테고리에 "전기차"가 나온다. */
+    override fun headerExtra(): View? {
+        if (QuestSession.type != "vehicle") return null
+        val on = EvMode.isOn(this)
+        return tv(if (on) "전기차 ON" else "전기차 OFF", 20f, if (on) Color.WHITE else ScreenActivity.NAVY, true).apply {
+            gravity = Gravity.CENTER; setPadding(dp(22f), 0, dp(22f), 0)
+            background = rounded(if (on) Color.parseColor("#2D7653") else Color.WHITE, 16f)
+            elevation = dp(4f).toFloat(); isClickable = true; isFocusable = true
+            setOnClickListener {
+                EvMode.set(this@QuestListActivity, !on)
+                if (on && QuestSession.category >= EvMode.cats(this@QuestListActivity, "vehicle").size) QuestSession.category = 0
+                refresh()
+            }
+        }
+    }
     private var catPanel: View? = null
     private var listPanel: View? = null
     override fun helpHeadline() = if (QuestSession.type == "daily") "일상 퀘스트 화면이에요" else "차량 퀘스트 화면이에요"
     override fun helpItems(): List<HelpItem>? {
         val c = catPanel ?: return null; val l = listPanel ?: return null
         return if (QuestSession.type == "vehicle") listOf(
-            HelpItem(c, "카테고리 8개", "출발 준비부터 전기차까지\n주제별로 나뉘어 있어요", HelpPlace.RIGHT, 0.22f),
+            HelpItem(c, "카테고리 ${EvMode.cats(this, "vehicle").size}개", "출발 준비부터 ${EvMode.cats(this, "vehicle").last()}까지\n주제별로 나뉘어 있어요", HelpPlace.RIGHT, 0.22f),
             HelpItem(l, "차량 퀘스트", "각 카테고리 안의 다양한 퀘스트를 깨볼 수 있어요\n한 카테고리를 다 깨면 뱃지를 받을 수 있어요", HelpPlace.OVER_MID, 0.62f),
         ) else listOf(
             HelpItem(c, "카테고리 9개", "차 관리부터 도전까지\n상황별로 나뉘어 있어요", HelpPlace.RIGHT, 0.22f),
@@ -31,7 +46,8 @@ class QuestListActivity : ScreenActivity() {
     override fun build(content: FrameLayout, w: Int, h: Int) {
         val type = QuestSession.type
         val green = type == "daily"
-        val cats = QuestData.cats.getValue(type)
+        val cats = EvMode.cats(this, type)
+        if (QuestSession.category >= cats.size) QuestSession.category = 0
 
         // 카테고리: 같은 굵기·같은 색의 선 아이콘 + 가운데 정렬된 이름
         val catBar = LinearLayout(this).apply {
