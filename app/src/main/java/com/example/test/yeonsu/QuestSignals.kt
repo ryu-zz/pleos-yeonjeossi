@@ -54,8 +54,6 @@ object QuestSignals {
         "왼쪽 방향지시등" to Detector("왼쪽 방향지시등을 켜면 자동으로 완료돼요$RETRY", turn, becomes { str(it) == "LEFT" }),
         "오른쪽 방향지시등" to Detector("오른쪽 방향지시등을 켜면 자동으로 완료돼요$RETRY", turn, becomes { str(it) == "RIGHT" }),
         "방향지시등 끄기" to Detector("방향지시등을 켰다가 끄면 자동으로 완료돼요", turn, becomes { str(it) == "OFF" }),
-        // "한 번 작동"은 단발(MIST) 위치를 읽을 수 없어서, 꺼져 있던 와이퍼가 작동 상태(ON)가 되면 완료로 본다
-        "와이퍼 한 번" to Detector("꺼진 와이퍼를 작동시키면 자동으로 완료돼요 (어떤 모드든 괜찮아요)", wiperOn, becomes { str(it) == "ON" }),
         "자동 와이퍼" to Detector("와이퍼를 AUTO에 놓으면 자동으로 완료돼요$RETRY", wiper, becomes { str(it) == "AUTO" }),
         "저속 와이퍼" to Detector("와이퍼를 LOW에 놓으면 자동으로 완료돼요$RETRY", wiper, becomes { str(it) == "CONTINUOUS_LEVEL_1" }),
         "고속 와이퍼" to Detector("와이퍼를 HIGH에 놓으면 자동으로 완료돼요$RETRY", wiper, becomes { str(it) == "CONTINUOUS_LEVEL_3" }),
@@ -79,6 +77,22 @@ object QuestSignals {
         "충전구 열기" to Detector("충전구를 열면 자동으로 완료돼요$RETRY", chargePort, becomes { it == true }),
     )
 
-    fun find(questName: String): Detector? = map[questName]
-    val names: Set<String> get() = map.keys
+    /**
+     * "와이퍼 한 번": 레버를 살짝 올렸다가 내리면 와이퍼가 켜졌다 꺼진다. 꺼짐 → 켜짐 → 꺼짐 순서를 보면 완료.
+     * (단발 위치 MIST는 에뮬레이터에서 만들 수 없어서 상태 변화로 판정한다.) 순서를 기억해야 해서 퀘스트에 들어올 때마다 새로 만든다.
+     */
+    private fun wiperOnce(): Detector {
+        var stage = 0   // 0: 꺼진 상태를 기다림, 1: 켜짐을 기다림, 2: 다시 꺼짐을 기다림
+        return Detector("와이퍼 레버를 살짝 올렸다가 내려 보세요 (켜졌다 꺼지면 자동으로 완료돼요)", wiperOn) { _, n ->
+            val on = n != null && str(n) == "ON"
+            when (stage) {
+                0 -> { if (n != null && !on) stage = 1; false }
+                1 -> { if (on) stage = 2; false }
+                else -> if (n != null && !on) { stage = 0; true } else false
+            }
+        }
+    }
+
+    fun find(questName: String): Detector? = if (questName == "와이퍼 한 번") wiperOnce() else map[questName]
+    val names: Set<String> get() = map.keys + "와이퍼 한 번"
 }
