@@ -44,6 +44,7 @@ object QuestSignals {
 
     private val doorFL = r<Int> { v, ok, f -> v.getDoor().getCurrentDoorPosition(DoorArea(DoorValue.ROW_1_LEFT), ok, f) }
     private val trunk = r<Int> { v, ok, f -> v.getDoor().getCurrentDoorPosition(DoorArea(DoorValue.REAR), ok, f) }
+    private val frunk = r<Int> { v, ok, f -> v.getDoor().getCurrentDoorPosition(DoorArea(DoorValue.HOOD), ok, f) }
     private val allLock = r<Boolean> { v, ok, f -> v.getDoor().getDoorLockState(DoorArea(DoorValue.ROW_1_LEFT, DoorValue.ROW_1_RIGHT, DoorValue.ROW_2_LEFT, DoorValue.ROW_2_RIGHT), ok, f) }
     private val winFL = r<Int> { v, ok, f -> v.getWindow().getCurrentWindowPosition(WindowArea(WindowValue.ROW_1_LEFT), ok, f) }
     private val brake = r<Boolean> { v, ok, f -> v.getBrake().getCurrentBrakePedalStatus(ok, f) }
@@ -78,6 +79,7 @@ object QuestSignals {
         // 잠금은 처음에 잠겨 있으므로 "푼 상태"가 첫 단계
         "전체 문 풀었다가 잠그기" to pair("문 잠금을 풀면 첫 단계가 끝나요", "다시 잠그면 자동으로 완료돼요", allLock) { it == false },
         "트렁크 열었다가 닫기" to pair("트렁크를 열면 첫 단계가 끝나요", "트렁크를 닫으면 자동으로 완료돼요", trunk) { num(it) > 0 },
+        "프렁크 열었다가 닫기" to pair("프렁크를 열면 첫 단계가 끝나요", "프렁크를 닫으면 자동으로 완료돼요", frunk) { num(it) > 0 },
         "에어컨 켰다가 끄기" to pair("A/C를 켜면 첫 단계가 끝나요", "A/C를 끄면 자동으로 완료돼요", ac) { it == true },
         "온도 조절" to single("운전석 온도를 22도로 맞추면 자동으로 완료돼요", temp) { num(it) == 22.0 },
         "송풍 방향" to single("바람 방향을 얼굴 쪽으로 바꾸면 자동으로 완료돼요", fanDir) { str(it).contains("FACE") },
