@@ -66,12 +66,13 @@ object QuestSignals {
         "에어컨" to Detector("A/C를 켜면 자동으로 완료돼요$RETRY", ac, becomes { it == true }),
         "온도 조절" to Detector("운전석 온도를 22도로 맞추면 자동으로 완료돼요$RETRY", temp, becomes { num(it) == 22.0 }),
         "풍량 조절" to Detector("풍량을 3단계로 맞추면 자동으로 완료돼요$RETRY", fanSpeed, becomes { num(it) == 3.0 }),
-        "송풍 방향" to Detector("바람 방향을 얼굴 쪽으로 바꾸면 자동으로 완료돼요$RETRY", fanDir, becomes { str(it) == "FACE" }),
+        "송풍 방향" to Detector("바람 방향을 얼굴 쪽으로 바꾸면 자동으로 완료돼요$RETRY", fanDir, becomes { str(it).contains("FACE") }),
         "내기순환" to Detector("내기순환을 켜면 자동으로 완료돼요$RETRY", recirc, becomes { it == true }),
         "외기 모드" to Detector("내기순환을 껐다가 외기 모드로 돌리면 자동으로 완료돼요", recirc, becomes { it == false }),
         "앞유리 성에 제거" to Detector("앞유리 성에 제거를 켜면 자동으로 완료돼요$RETRY", defrost, becomes { it == true }),
         "시트 열선·통풍" to Detector("운전석 시트 통풍 1단계를 켜면 자동으로 완료돼요$RETRY", seatTemp, becomes { num(it) == -1.0 }),
-        "운전대 방향" to Detector("운전대를 왼쪽으로 돌리면 자동으로 완료돼요$RETRY", wheel, becomes { num(it) > 5.0 }),
+        // SDK 정의: 왼쪽으로 조향하면 각도가 음수(에뮬레이터 콘솔은 부호가 반대로 전달됨)
+        "운전대 방향" to Detector("운전대를 왼쪽으로 돌리면 자동으로 완료돼요$RETRY", wheel, becomes { num(it) < -5.0 }),
         "충전구 열기" to Detector("충전구를 열면 자동으로 완료돼요$RETRY", chargePort, becomes { it == true }),
     )
 

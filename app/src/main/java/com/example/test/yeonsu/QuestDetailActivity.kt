@@ -41,7 +41,7 @@ class QuestDetailActivity : ScreenActivity() {
         if (!connected) { connected = true; refresh() }
         if (prev != null && store.state(q).status == "doing" && d.done(prev, now)) {
             android.util.Log.d("YeonsuSignal", "${q.name}: $prev -> $now 완료")
-            if (store.advance(q)) { success = true; refresh() }
+            if (store.advance(q, verified = true)) { success = true; refresh() }
         }
     }
     override fun onCreate(savedInstanceState: android.os.Bundle?) {

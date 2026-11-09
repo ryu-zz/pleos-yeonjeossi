@@ -258,7 +258,8 @@ object QuestSession {
  */
 class QuestStore(context: Context) {
     class State(val status: String, val step: Int)
-    class Record(val id: String, val name: String, val at: Long)
+    /** verified=true: 차량 신호로 확인된 완료. false(또는 이전 기록): 버튼으로 완료한 기록. */
+    class Record(val id: String, val name: String, val at: Long, val verified: Boolean = false)
 
     private val prefs = context.getSharedPreferences("yeonsu_quest", Context.MODE_PRIVATE)
 
@@ -275,22 +276,22 @@ class QuestStore(context: Context) {
     fun stop(q: Quest) { prefs.edit().remove("p:" + q.id).apply() }
 
     /** 단계 진행과 상관없이 완료 처리하고 기록을 남긴다. */
-    fun complete(q: Quest) {
+    fun complete(q: Quest, verified: Boolean = false) {
         prefs.edit().putString("p:" + q.id, "done|" + q.steps.size).apply()
         val arr = JSONArray(prefs.getString("records", "[]"))
-        arr.put(JSONObject().put("id", q.id).put("name", q.name).put("at", System.currentTimeMillis()))
+        arr.put(JSONObject().put("id", q.id).put("name", q.name).put("at", System.currentTimeMillis()).put("verified", verified))
         prefs.edit().putString("records", arr.toString()).apply()
         checkBadge(q)
     }
     /** 다음 단계로 넘긴다. 마지막 단계면 완료 기록을 남기고 true. */
-    fun advance(q: Quest): Boolean {
+    fun advance(q: Quest, verified: Boolean = false): Boolean {
         val s = state(q)
         if (s.status != "doing") return false
         val next = s.step + 1
         if (next >= q.steps.size) {
             prefs.edit().putString("p:" + q.id, "done|$next").apply()
             val arr = JSONArray(prefs.getString("records", "[]"))
-            arr.put(JSONObject().put("id", q.id).put("name", q.name).put("at", System.currentTimeMillis()))
+            arr.put(JSONObject().put("id", q.id).put("name", q.name).put("at", System.currentTimeMillis()).put("verified", verified))
             prefs.edit().putString("records", arr.toString()).apply()
             checkBadge(q)
             return true
@@ -322,6 +323,6 @@ class QuestStore(context: Context) {
     /** 최근 순. */
     fun records(): List<Record> {
         val arr = JSONArray(prefs.getString("records", "[]"))
-        return (0 until arr.length()).map { val o = arr.getJSONObject(it); Record(o.getString("id"), o.getString("name"), o.getLong("at")) }.reversed()
+        return (0 until arr.length()).map { val o = arr.getJSONObject(it); Record(o.getString("id"), o.getString("name"), o.getLong("at"), o.optBoolean("verified", false)) }.reversed()
     }
 }
