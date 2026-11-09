@@ -39,9 +39,11 @@ class QuestDetailActivity : ScreenActivity() {
         lastValue = now
         val q = QuestSession.selected()
         if (!connected) { connected = true; refresh() }
-        if (prev != null && store.state(q).status == "doing" && d.done(prev, now)) {
-            android.util.Log.d("YeonsuSignal", "${q.name}: $prev -> $now 완료")
-            if (store.advance(q, verified = true)) { success = true; refresh() }
+        val st = store.state(q)
+        if (prev != null && st.status == "doing" && d.done(st.step, prev, now)) {
+            android.util.Log.d("YeonsuSignal", "${q.name}: ${st.step + 1}단계 $prev -> $now")
+            if (store.advance(q, verified = true)) success = true
+            refresh()
         }
     }
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
@@ -89,7 +91,8 @@ class QuestDetailActivity : ScreenActivity() {
             steps.addView(tv("핵심: " + q.tip, 20f, Color.parseColor("#7A4A00"), true).apply {
                 background = rounded(Color.parseColor("#FFF1CC"), 18f); setPadding(dp(20f), dp(16f), dp(20f), dp(16f)); setLineSpacing(0f, 1.2f)
             }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10f) })
-        } else q.steps.forEachIndexed { i, name ->
+        }
+        if (q.tip == null || q.steps.size > 1) q.steps.forEachIndexed { i, name ->
             val ok = i < s.step
             steps.addView(tv((if (ok) "✓ " else "○ ") + name, 22f, if (ok) Color.parseColor("#2D7653") else ScreenActivity.NAVY).apply {
                 background = rounded(Color.parseColor(if (ok) "#D9EEE1" else "#EAF0F8"), 18f); setPadding(dp(20f), dp(16f), dp(20f), dp(16f))
@@ -118,10 +121,10 @@ class QuestDetailActivity : ScreenActivity() {
 
         if (!success && s.status == "doing") {
             detector?.let { d -> panel.addView(tv(
-                if (connected) "차량 연결됨 · ${d.hint}" else "차량 연결 중…", 18f, Color.parseColor("#2D7653"), true
+                if (connected) "차량 연결됨 · ${d.hints[s.step.coerceIn(0, d.hints.size - 1)]}" else "차량 연결 중…", 18f, Color.parseColor("#2D7653"), true
             ).apply { setPadding(0, dp(18f), 0, 0); setLineSpacing(0f, 1.2f) }) }
             panel.addView(tv("미리보기 조작 · 실제 차량 조작이 아닙니다", 16f, Color.parseColor("#758298")).apply { setPadding(0, dp(22f), 0, dp(8f)) })
-            panel.addView(tv((if (q.tip != null) "동작을 마쳤다고 치기" else q.steps[s.step]) + "　→", 22f, ScreenActivity.NAVY).apply {
+            panel.addView(tv((if (q.tip != null && q.steps.size == 1) "동작을 마쳤다고 치기" else q.steps[s.step.coerceAtMost(q.steps.size - 1)]) + "　→", 22f, ScreenActivity.NAVY).apply {
                 background = rounded(Color.parseColor("#DFEBFA"), 16f); setPadding(dp(20f), dp(14f), dp(20f), dp(14f))
                 isClickable = true; isFocusable = true
                 setOnClickListener { if (store.advance(q)) success = true; refresh() }
