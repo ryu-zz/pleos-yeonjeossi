@@ -100,6 +100,22 @@ abstract class ScreenActivity : FadeActivity() {
         return row
     }
 
+    // ───── 짧은 안내 문구(토스트 대신 화면 가운데에 직접 그림) ─────
+    private var banner: TextView? = null
+    protected fun showBanner(msg: String) {
+        banner?.let { root.removeView(it) }
+        val t = tv(msg, 26f, Color.WHITE, true).apply {
+            gravity = Gravity.CENTER; setPadding(dp(36f), dp(18f), dp(36f), dp(18f))
+            background = GradientDrawable().apply { setColor(Color.parseColor("#E60F1B3D")); cornerRadius = dp(40f).toFloat() }
+            elevation = dp(60f).toFloat(); alpha = 0f
+        }
+        banner = t
+        root.addView(t, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
+        t.animate().alpha(1f).setDuration(200).withEndAction {
+            t.animate().alpha(0f).setStartDelay(1800).setDuration(400).withEndAction { root.removeView(t); if (banner === t) banner = null }.start()
+        }.start()
+    }
+
     // ───── 뱃지 획득 팝업 ─────
     private fun showBadge(type: String, c: Int) {
         val scrim = FrameLayout(this).apply { setBackgroundColor(Color.parseColor("#B20F1B3D")); isClickable = true; alpha = 0f }
