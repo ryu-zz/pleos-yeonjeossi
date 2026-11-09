@@ -60,6 +60,7 @@ object QuestSignals {
     private val defrost = r<Boolean> { v, ok, f -> v.getHVAC().getHvacDefrosterState(WindowArea(WindowValue.FRONT_WINDSHIELD), ok, f) }
     private val seatTemp = r<Int> { v, ok, f -> v.getSeat().getHvacSeatTemperature(seatL, ok, f) }
     private val wheel = r<Float> { v, ok, f -> v.getSteeringWheel().getCurrentSteeringWheelAngle(ok, f) }
+    private val cruise = r<Any> { v, ok, f -> v.getDrivingMode().getCruiseControlState(ok, f) }
     private val chargePort = r<Boolean> { v, ok, f -> v.getEvBattery().isEvChargePortOpen(ok, f) }
 
     private val map: Map<String, Detector> = mapOf(
@@ -87,6 +88,8 @@ object QuestSignals {
         "시트 통풍 켰다가 끄기" to pair("시트 통풍 1단계를 켜면 첫 단계가 끝나요", "통풍을 끄면 자동으로 완료돼요", seatTemp) { num(it) == -1.0 },
         // SDK 정의: 왼쪽으로 조향하면 각도가 음수(에뮬레이터 콘솔은 부호가 반대로 전달됨). 끄기 단계는 가운데로 돌아오는 것
         "운전대 왼쪽으로 돌렸다가 풀기" to pair("운전대를 왼쪽으로 돌리면 첫 단계가 끝나요", "가운데로 돌려놓으면 자동으로 완료돼요", wheel) { num(it) < -5.0 },
+        // 에뮬레이터 콘솔에서는 Driving Mode의 "Full autonomous"가 크루즈 작동(ACTIVATED), "Ready"가 대기(ENABLED)
+        "크루즈 켰다가 끄기" to pair("크루즈를 켜면 첫 단계가 끝나요", "크루즈를 끄면 자동으로 완료돼요", cruise) { str(it) == "ACTIVATED" },
         "충전구 열었다가 닫기" to pair("충전구를 열면 첫 단계가 끝나요", "충전구를 닫으면 자동으로 완료돼요", chargePort) { it == true },
     )
 
