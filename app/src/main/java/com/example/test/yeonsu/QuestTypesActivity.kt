@@ -27,12 +27,8 @@ class QuestTypesActivity : FadeActivity() {
             addView(img, FrameLayout.LayoutParams(-1, -1))
         }
         val spots = listOf(
-            Triple(RectF(36f, 22f, 104f, 90f), "뒤로") { goTo(HomeActivity::class.java) },
-            Triple(RectF(1252f, 24f, 1322f, 92f), "홈") { goTo(HomeActivity::class.java) },
-            Triple(RectF(1341f, 24f, 1411f, 92f), "설정") { soon("설정") },
-            Triple(RectF(1429f, 24f, 1499f, 92f), "도움말") { soon("도움말") },
-            Triple(RectF(721f, 326f, 1406f, 594f), "차량 퀘스트") { open("vehicle") },
-            Triple(RectF(721f, 642f, 1406f, 910f), "일상 퀘스트") { open("daily") },
+            Triple(RectF(702f, 318f, 1483f, 582f), "차량 퀘스트") { open("vehicle") },
+            Triple(RectF(702f, 634f, 1483f, 898f), "일상 퀘스트") { open("daily") },
         ).map { (rect, name, action) ->
             val v = View(this).apply {
                 isClickable = true; isFocusable = true; contentDescription = name
@@ -51,6 +47,8 @@ class QuestTypesActivity : FadeActivity() {
             rect to v
         }
         setContentView(root)
+        // 위쪽 바(뒤로·연저씨·홈·설정·도움말)는 다른 화면(ScreenActivity)과 똑같이 코드로 그린다
+        root.post { root.addView(header(root.width), FrameLayout.LayoutParams(-1, (96f * root.width / 1672f * 1.6f).toInt(), android.view.Gravity.TOP)) }
         img.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             val d = img.drawable ?: return@addOnLayoutChangeListener
             if (img.width == 0 || img.height == 0) return@addOnLayoutChangeListener
@@ -76,6 +74,34 @@ class QuestTypesActivity : FadeActivity() {
     private fun open(type: String) {
         QuestSession.type = type; QuestSession.category = 0; QuestListActivity.catScroll = 0
         goTo(QuestListActivity::class.java)
+    }
+    private fun header(w: Int): View {
+        val k = w / 1672f * 1.6f
+        fun dp(v: Float) = (v * k).toInt()
+        fun iconBtn(icon: Int, onClick: () -> Unit) = ImageView(this).apply {
+            setImageResource(icon)
+            val p = dp(56f * 0.26f); setPadding(p, p, p, p)
+            background = GradientDrawable().apply { setColor(Color.WHITE); cornerRadius = dp(16f).toFloat() }
+            elevation = dp(4f).toFloat(); isClickable = true; isFocusable = true
+            setOnClickListener { onClick() }
+        }
+        val row = android.widget.LinearLayout(this).apply {
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(dp(36f), dp(8f), dp(32f), 0)
+        }
+        row.addView(iconBtn(R.drawable.ic_y_chev_left) { goTo(HomeActivity::class.java) },
+            android.widget.LinearLayout.LayoutParams(dp(56f), dp(56f)).apply { rightMargin = dp(14f) })
+        row.addView(ImageView(this).apply { setImageResource(R.drawable.ic_y_wheel) }, android.widget.LinearLayout.LayoutParams(dp(40f), dp(40f)))
+        row.addView(android.widget.TextView(this).apply {
+            text = "연저씨"; setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, 30f * k); setTextColor(ScreenActivity.NAVY)
+            typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD)
+            includeFontPadding = false; setPadding(dp(12f), 0, 0, 0)
+        }, android.widget.LinearLayout.LayoutParams(0, -2, 1f))
+        listOf(R.drawable.ic_y_home to "홈", R.drawable.ic_y_settings to "설정", R.drawable.ic_y_help to "도움말").forEach { (ic, name) ->
+            row.addView(iconBtn(ic) { if (name == "홈") goTo(HomeActivity::class.java) else soon(name) },
+                android.widget.LinearLayout.LayoutParams(dp(56f), dp(56f)).apply { leftMargin = dp(12f) })
+        }
+        return row
     }
     private fun soon(name: String) = Toast.makeText(this, "$name 화면은 준비 중이에요", Toast.LENGTH_SHORT).show()
     companion object {

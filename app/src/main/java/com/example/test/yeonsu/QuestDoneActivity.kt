@@ -13,9 +13,6 @@ import android.widget.TextView
 import android.graphics.Typeface
 import android.graphics.text.LineBreakConfig
 import android.os.Build
-import android.text.SpannableString
-import android.text.style.ForegroundColorSpan
-import android.text.style.StyleSpan
 import android.util.TypedValue
 import android.view.Gravity
 import androidx.core.widget.TextViewCompat
@@ -50,7 +47,7 @@ class QuestDoneActivity : FadeActivity() {
             Triple(RectF(1161f, 38f, 1241f, 116f), "홈") { goTo(HomeActivity::class.java) },
             Triple(RectF(1264f, 38f, 1344f, 116f), "설정") { soon("설정") },
             Triple(RectF(1366f, 38f, 1446f, 116f), "도움말") { soon("도움말") },
-            Triple(RectF(905f, 820f, 1313f, 934f), "다른 퀘스트") { goTo(QuestListActivity::class.java) },
+            Triple(RectF(848f, 700f, 1256f, 814f), "다른 퀘스트") { goTo(QuestListActivity::class.java) },
         ).map { (rect, name, action) ->
             val v = View(this).apply {
                 isClickable = true; isFocusable = true; contentDescription = name
@@ -76,10 +73,6 @@ class QuestDoneActivity : FadeActivity() {
             if ('\n' in d) d else d.indices.filter { d[it] == ' ' }.minByOrNull { kotlin.math.abs(it - d.length / 2) }
                 ?.let { d.substring(0, it) + "\n" + d.substring(it + 1) } ?: d
         }
-        val tipText = SpannableString("TIP. " + (QuestData.doneTips[q.name] ?: COMMON_TIP[pick])).apply {
-            setSpan(ForegroundColorSpan(Color.parseColor("#2F6BE0")), 0, 4, 0)
-            setSpan(StyleSpan(Typeface.BOLD), 0, 4, 0)
-        }
         // 제목은 완료할 때마다 무작위 (화면 회전 등으로 다시 만들어져도 유지)
         val titleIdx = savedInstanceState?.getInt("title") ?: TITLES.indices.random()
         titleIndex = titleIdx
@@ -87,7 +80,6 @@ class QuestDoneActivity : FadeActivity() {
         val texts = listOf(
             Triple(RectF(849f, 380f, 1430f, 480f), 0, title to Color.parseColor("#1D3878")),
             Triple(RectF(849f, 515f, 1400f, 645f), 2, descText to Color.parseColor("#5E6D93")),
-            Triple(RectF(850f, 700f, 1410f, 746f), 1, tipText to Color.parseColor("#2D4C9E")),
         ).map { (rect, lines, content) ->
             val t = TextView(this).apply {
                 text = content.first; setTextColor(content.second)
@@ -179,10 +171,6 @@ class QuestDoneActivity : FadeActivity() {
         private val COMMON_DESC = listOf(
             "한 단계 더 익숙해졌어!\n이 느낌 그대로 기억해 두게.",
             "처음엔 다 어려운 법이야.\n벌써 하나 해냈잖아!",
-        )
-        private val COMMON_TIP = listOf(
-            "주행 중에는 항상 안전거리를 유지해 주세요!",
-            "출발 전엔 거울과 안전벨트를 꼭 확인해 주세요!",
         )
         /** 터치 영역 좌표의 기준 크기 (yeonsu_quest_done.png 원본 픽셀) */
         private const val SRC_W = 1490f

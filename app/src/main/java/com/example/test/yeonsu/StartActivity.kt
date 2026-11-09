@@ -70,7 +70,7 @@ class StartActivity : FadeActivity() {
         private const val SRC_W = 1152f
         private const val SRC_H = 960f
         /** 그림 속 "시작하기" 버튼 위치 (원본 픽셀) */
-        private val BTN = RectF(746f, 707f, 1101f, 807f)
+        private val BTN = RectF(686f, 707f, 1041f, 807f)
         fun skyBackground() = GradientDrawable(GradientDrawable.Orientation.TL_BR,
             intArrayOf(Color.parseColor("#EEF2FF"), Color.parseColor("#D6E2FD"), Color.parseColor("#C2D6FA")))
     }

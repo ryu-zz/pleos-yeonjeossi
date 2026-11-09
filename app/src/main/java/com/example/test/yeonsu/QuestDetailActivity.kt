@@ -101,8 +101,8 @@ class QuestDetailActivity : ScreenActivity() {
         chip.addView(t(cats[q.c], 30f, Color.parseColor("#1F3F86"), true).apply { setPadding(px(18f), 0, 0, 0) })
         col.addView(chip, LinearLayout.LayoutParams(-2, -2))
 
-        col.addView(t(q.name, 72f, Color.parseColor("#14245A"), true).apply { setPadding(0, px(30f), 0, 0) })
-        col.addView(t(q.desc, 32f, Color.parseColor("#3C4864")).apply { setPadding(0, px(26f), 0, 0); setLineSpacing(0f, 1.25f) })
+        col.addView(t(q.name, 72f, Color.parseColor("#14245A"), true).apply { setPadding(0, px(30f), 0, 0); alignInk(this, px(24f)) })
+        col.addView(t(q.desc, 32f, Color.parseColor("#3C4864")).apply { setPadding(0, px(26f), 0, 0); setLineSpacing(0f, 1.25f); alignInk(this, px(24f)) })
 
         // 핵심 한 줄 (노란 알약). 핵심이 없으면 단계 목록을 보여준다.
         if (q.tip != null) {
@@ -112,8 +112,14 @@ class QuestDetailActivity : ScreenActivity() {
                 setPadding(px(18f), px(22f), px(26f), px(22f))
             }
             tip.addView(t("💡", 40f, Color.BLACK).apply { setPadding(0, 0, px(14f), 0) })
-            tip.addView(t("핵심: " + q.tip, 27f, Color.parseColor("#8A4300"), true).apply { setLineSpacing(0f, 1.2f) },
-                LinearLayout.LayoutParams(0, -2, 1f))
+            // 핵심 문구는 항상 한 줄. 길면 글자 크기를 줄여서 한 줄에 맞춘다.
+            tip.addView(t("핵심: " + q.tip, 27f, Color.parseColor("#8A4300"), true).apply {
+                maxLines = 1
+                androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(this,
+                    px(16f), px(27f), 1, android.util.TypedValue.COMPLEX_UNIT_PX)
+                gravity = Gravity.CENTER_VERTICAL
+            },
+                LinearLayout.LayoutParams(0, px(40f), 1f))
             col.addView(tip, LinearLayout.LayoutParams(-1, -2).apply { topMargin = px(36f) })
         } else q.steps.forEachIndexed { i, name ->
             val ok = i < s.step
@@ -172,5 +178,12 @@ class QuestDetailActivity : ScreenActivity() {
         wrap.addView(card, FrameLayout.LayoutParams(-1, -2, Gravity.CENTER_VERTICAL))
         outer.addView(wrap)
         content.addView(outer, FrameLayout.LayoutParams(-1, -1))
+    }
+    /** 글자 첫 획이 정확히 inset 위치(칸 안쪽 아이콘과 같은 세로줄)에서 시작하도록 옮긴다. */
+    private fun alignInk(v: android.widget.TextView, inset: Int = 0) {
+        val r = android.graphics.Rect()
+        val first = v.text.toString().lineSequence().first()
+        v.paint.getTextBounds(first, 0, first.length, r)
+        if (inset >= r.left) v.setPadding(inset - r.left, v.paddingTop, v.paddingRight, v.paddingBottom) else v.translationX = (inset - r.left).toFloat()
     }
 }
