@@ -83,7 +83,8 @@ class QuestDetailActivity : ScreenActivity() {
             background = rounded(Color.parseColor("#DCEAFA"), 24f); setPadding(dp(18f), dp(8f), dp(18f), dp(8f))
         }, LinearLayout.LayoutParams(-2, -2))
         panel.addView(tv(if (success) "좋아, 잘 해냈어!" else q.name, 44f, ScreenActivity.NAVY, true).apply { setPadding(0, dp(16f), 0, 0) })
-        panel.addView(tv(if (success) (q.doneMsg ?: "작은 확인 하나가 익숙한 습관이 되는 거야.") else q.desc, 22f, ScreenActivity.GRAY).apply {
+        // 제목 밑 부제목: 차량 퀘스트는 아래 단계 목록과 같은 말이라 보여주지 않는다(완료 화면의 칭찬 문구만 보여준다)
+        if (success || QuestSession.type != "vehicle") panel.addView(tv(if (success) (q.doneMsg ?: "작은 확인 하나가 익숙한 습관이 되는 거야.") else q.desc, 22f, ScreenActivity.GRAY).apply {
             setPadding(0, dp(12f), 0, dp(8f)); setLineSpacing(0f, 1.3f)
         })
         val steps = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -120,15 +121,14 @@ class QuestDetailActivity : ScreenActivity() {
         panel.addView(actions)
 
         if (!success && s.status == "doing") {
-            detector?.let { d -> panel.addView(tv(
-                if (connected) "차량 연결됨 · ${d.hints[s.step.coerceIn(0, d.hints.size - 1)]}" else "차량 연결 중…", 18f, Color.parseColor("#2D7653"), true
-            ).apply { setPadding(0, dp(18f), 0, 0); setLineSpacing(0f, 1.2f) }) }
-            panel.addView(tv("미리보기 조작 · 실제 차량 조작이 아닙니다", 16f, Color.parseColor("#758298")).apply { setPadding(0, dp(22f), 0, dp(8f)) })
-            panel.addView(tv((if (q.tip != null && q.steps.size == 1) "동작을 마쳤다고 치기" else q.steps[s.step.coerceAtMost(q.steps.size - 1)]) + "　→", 22f, ScreenActivity.NAVY).apply {
-                background = rounded(Color.parseColor("#DFEBFA"), 16f); setPadding(dp(20f), dp(14f), dp(20f), dp(14f))
-                isClickable = true; isFocusable = true
-                setOnClickListener { if (store.advance(q)) success = true; refresh() }
-            }, LinearLayout.LayoutParams(-2, -2))
+            // 차량 퀘스트는 차량 신호로만 완료한다. 일상 퀘스트(차량 신호가 없는 임시 단계)만 버튼으로 넘긴다.
+            if (QuestSession.type != "vehicle") {
+                panel.addView(tv(q.steps[s.step.coerceAtMost(q.steps.size - 1)] + "　→", 22f, ScreenActivity.NAVY).apply {
+                    background = rounded(Color.parseColor("#DFEBFA"), 16f); setPadding(dp(20f), dp(14f), dp(20f), dp(14f))
+                    isClickable = true; isFocusable = true
+                    setOnClickListener { if (store.advance(q)) success = true; refresh() }
+                }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(18f) })
+            }
         }
 
         val scroll = ScrollView(this).apply { addView(panel); isVerticalScrollBarEnabled = false }
