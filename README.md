@@ -1,32 +1,205 @@
-# RoadMate
+<div align="center">
 
-Pleos Connect 차량용 앱 공모전 출품작. 차가 드라이브를 자동으로 기록하고, 도착하면 한 페이지 추억과 공유 카드로 남겨 주는 앱.
+# 🚗 연저씨 🚗
 
-## 개발 환경
-- Android Studio, Android SDK API 34 이상, minSdk 28, Kotlin
-- Pleos Connect Emulator (AVD: `Pleos_Connect_v2.1.0`)
-  - system image URL은 Pleos Playground에서 확인
+### "너의 연수 아저씨" · 초보 운전자를 위한 차량 조작 퀘스트 앱
 
-## 처음 받았을 때
-1. `git clone` 후 Android Studio로 폴더 열기
-2. Sync Project with Gradle Files
-3. 실행 기기를 **Pleos Connect** 에뮬레이터로 선택 (휴대폰 에뮬레이터 X)
-4. ▶ Run → 화면에 "✅ 연결 성공"이 뜨면 정상
+현대 Pleos Connect 차량용 앱 개발 공모전 출품작
 
-## Pleos SDK
-| SDK | 버전 | Playground 상태 | 에뮬레이터 |
-|---|---|---|---|
-| Vehicle | 2.3.2 | 사용 가능 | ✅ 동작 (2.3.1은 저장소에 없음) |
-| FusedLocation | 1.1.3 | 준비 중 | ✅ 위치 수신 |
-| SpeechToText | 3.3.1 | 준비 중 | ✅ 초기화 (ON_DEVICE) |
-| TextToSpeech | 3.3.1 | 준비 중 | ✅ 초기화 (ON_DEVICE) |
-| NaviHelper | 3.0.5 | 사용 가능 | 추가 예정 |
+![Platform](https://img.shields.io/badge/Platform-Pleos%20Connect-14204A)
+![Android](https://img.shields.io/badge/Android-minSdk%2028-3DDC84?logo=android&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-100%25-7F52FF?logo=kotlin&logoColor=white)
+![Pleos Vehicle SDK](https://img.shields.io/badge/Pleos%20Vehicle%20SDK-2.3.2-3A78E8)
 
-"준비 중" SDK는 에뮬레이터에서 동작하지만 실차·심사 허용 여부는 미확인.
-에뮬레이터 위치 변경: 에뮬레이터 ⋯ (Extended controls) → Location (또는 `adb emu geo fix <경도> <위도>`).
+<img src="docs/screenshots/01-start.png" width="860" alt="연저씨 시작 화면">
 
-Maven 저장소는 `settings.gradle.kts`에 등록되어 있음. 퍼미션은 `app/src/main/AndroidManifest.xml`.
+</div>
 
-## 주의
-- 클라이언트 ID/시크릿은 **절대 커밋하지 않기**. `local.properties`(git 제외됨)에 저장.
-- 의존성은 최상위 `build.gradle.kts`가 아니라 `app/build.gradle.kts`에 추가.
+---
+
+## 📖 목차
+
+1. [왜 만들었는지?](#-왜-만들었는지)
+2. [핵심 기능](#-핵심-기능)
+3. [화면 둘러보기](#-화면-둘러보기)
+4. [사용 흐름](#-사용-흐름)
+5. [퀘스트 완료 확인법](#-퀘스트-완료-확인법)
+6. [퀘스트 구성](#-퀘스트-구성)
+7. [사용한 Pleos SDK](#-사용한-pleos-sdk)
+8. [코드 구조](#-코드-구조)
+9. [실행 방법](#-실행-방법)
+10. [알려진 제약](#-알려진-제약)
+
+---
+
+##  왜 만들었는지?  
+
+
+**연저씨**는 차량 데이터 기반 맞춤형 코칭과 실전 퀘스트를 통해 초보운전자의 운전 실력을 키워주는 AI 운전 연수 앱입니다.  
+퀘스트를 하나씩 깨면서 실제 차량 조작을 익히고, 앱은 차량이 보내는 신호로 제대로 했는지 확인해 줍니다.  
+말투가 구수한 연저씨가 옆에서 알려주는 형식이라 딱딱하지 않아서 기분 좋게 배울 수 있습니다.
+
+---
+
+##  핵심 기능
+
+| 기능 | 설명 |
+|---|---|
+|  **차량 조작 퀘스트** | 문, 방향지시등, 와이퍼, 전조등, 창문, 공조, 주행 기능, 전기차까지 8개 카테고리 |
+|  **차량 신호로 완료 확인** | Pleos Vehicle SDK로 실제 상태 변화를 읽어 단계를 판정 |
+|  **일상 퀘스트 42개** | 주유소, 드라이브스루, 주차, 고속도로, 보호구역 등 9개 카테고리의 실제 운전 상황 |
+|  **내비 연동** | 일상 퀘스트에서 경로 시작과 도착 신호를 NaviHelper로 받고, 연저씨가 음성(TTS)으로 안내 |
+|  **기록과 뱃지** | 완료한 퀘스트, 최근 기록, 카테고리를 모두 깨면 받는 뱃지를 마이페이지에 모아 보여줌 |
+|  **화면별 도움말** | 모든 화면의 같은 자리(우측 상단)에서 도움말 오버레이로 설명 |
+|  **차량용 디자인** | 가로형 차량 디스플레이에 맞춘 큰 글씨, 큰 카드, 하나로 통일된 그라데이션 배경 |
+
+---
+
+##  화면 둘러보기
+
+Pleos Connect 에뮬레이터에서 직접 캡처한 화면입니다.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/02-home.png" alt="메인"><br><b>메인</b><br>마이페이지 · 일반 주행 · 퀘스트를 카드로 선택</td>
+<td width="50%"><img src="docs/screenshots/03-quest-types.png" alt="퀘스트 종류"><br><b>퀘스트 종류</b><br>차량 퀘스트와 일상 퀘스트 중 선택</td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/04-vehicle-quests.png" alt="차량 퀘스트 목록"><br><b>차량 퀘스트 목록</b><br>카테고리별 목록과 완료 · 미완료 표시</td>
+<td><img src="docs/screenshots/05-quest-detail.png" alt="퀘스트 상세"><br><b>퀘스트 진행</b><br>사진, 핵심 포인트, 단계별 체크</td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/06-daily-quests.png" alt="일상 퀘스트 목록"><br><b>일상 퀘스트 목록</b><br>난이도(별)와 확인 방식 표시</td>
+<td><img src="docs/screenshots/07-mypage.png" alt="마이페이지"><br><b>마이페이지</b><br>완료 개수, 카테고리 뱃지, 최근 기록</td>
+</tr>
+<tr>
+<td colspan="2" align="center"><img src="docs/screenshots/08-help-overlay.png" width="50%" alt="도움말"><br><b>도움말 오버레이</b><br>화면 요소가 무엇인지 어둡게 덮고 글씨로 설명</td>
+</tr>
+</table>
+
+---
+
+##  사용 흐름
+
+<img src="docs/diagrams/flow.png" alt="연저씨 사용 흐름">
+
+---
+
+##  퀘스트 완료 확인법
+
+<img src="docs/diagrams/signal.png" alt="차량 신호 확인 흐름">
+
+예를 들어 **"리어 와이퍼 켰다가 끄기"** 퀘스트는 다음처럼 동작합니다.
+
+| 단계 | 앱이 안내하는 말 | 앱이 읽는 신호 |
+|---|---|---|
+| 1 | 리어 와이퍼를 켜보세요 | `getWiper().getCurrentWiperState(REAR_WINDSHIELD)`가 작동 중 |
+| 2 | 리어 와이퍼를 꺼보세요 | 같은 신호가 정지 |
+
+신호가 목표 상태가 되면 다음 단계로 넘어가고, 마지막 단계까지 끝내면 연저씨의 칭찬 화면과 함께 기록이 저장됩니다.
+
+---
+
+##  퀘스트 구성
+
+### 차량 퀘스트 (25개)
+
+| 카테고리 | 개수 | 대표 퀘스트 |
+|---|:---:|---|
+| 출발 준비 | 2 | 운전석 문 열었다가 닫기, 브레이크 밟았다가 떼기 |
+| 방향지시등 | 2 | 왼쪽 · 오른쪽 방향지시등 켰다가 끄기 |
+| 와이퍼 | 5 | 와이퍼 한 번, 자동 · 저속 · 고속, **리어 와이퍼** |
+| 전조등 | 2 | 하향등, 상향등 켰다가 끄기 |
+| 창문 기능 | 4 | 운전석 창문, 전체 문 잠금, 트렁크, 프렁크 |
+| 공조 시야 | 7 | 에어컨, 온도, 송풍 방향, 내기순환 → 외기, 앞유리 성에 제거, **뒷유리 열선**, 시트 통풍 |
+| 주행 기능 | 2 | 운전대 돌렸다가 풀기, 크루즈 켰다가 끄기 |
+| 전기차 | 1 | 충전구 열었다가 닫기 (전기차 모드를 켰을 때만 표시) |
+
+차량 신호 확인 상태: **확인 가능 23개 · 부분 가능 1개(트렁크) · 자동 판정 어려움 1개(충전구)**
+
+### 일상 퀘스트 (42개)
+
+| 카테고리 | 개수 | 예시 |
+|---|:---:|---|
+| 차 관리 | 6 | 셀프 주유소에서 직접 주유하기, 자동 세차장 통과하기 |
+| 드라이브스루 | 4 | 카페 드라이브스루 주문하기, 약국 드라이브스루 이용하기 |
+| 주차 | 5 | 대형마트 지하주차장 주차, 백화점 나선형 주차장, 기계식 주차타워 |
+| 고속도로 | 5 | 하이패스 톨게이트 통과하기, 휴게소에서 쉬고 다시 출발하기 |
+| 보호구역 | 4 | 어린이보호구역 통과하기, 노인보호구역 통과하기 |
+| 생활 이동 | 5 | 기차역에서 사람 태워 오기, 공항 출국장 앞에서 내려주기 |
+| 특수 도로 | 5 | 한강 다리 건너기, 긴 터널 통과하기, 산 고갯길 넘어가기 |
+| 시간 · 날씨 | 4 | 야간 드라이브, 비 오는 날 장보고 오기 |
+| 도전 | 4 | 처음 가보는 도시 다녀오기, 왕복 100km 드라이브 |
+
+난이도는 별 2개에서 4개까지입니다. 
+일상 퀘스트는 내비로 경로를 정하면 도착 신호를 받아 이어지고, 직접 확인이 필요한 4개는 사용자가 완료를 눌러 마칩니다.
+
+---
+
+##  사용한 Pleos SDK
+
+| SDK | 버전 | 앱에서 하는 일 |
+|---|---|---|
+| **Vehicle** | 2.3.2 | 문, 와이퍼, 조명, 공조, 창문 상태를 읽어 퀘스트 단계를 판정 |
+| **NaviHelper** | 3.0.5 | 일상 퀘스트의 경로 시작과 도착 신호 수신 |
+| **TextToSpeech** | 3.3.1 | 연저씨의 음성 안내 (남성 목소리) |
+| **FusedLocation** | 1.1.3 | 위치 수신 |
+| **SpeechToText** | 3.3.1 | 음성 인식 초기화 |
+
+> TextToSpeech, FusedLocation, SpeechToText는 Playground에서 "준비 중"으로 표시된 SDK입니다. 
+
+요청하는 차량 권한은 `app/src/main/AndroidManifest.xml`에 있고, Maven 저장소는 `settings.gradle.kts`에 등록되어 있습니다.
+
+---
+
+##  코드 구조
+
+모든 화면 코드는 `app/src/main/java/com/example/test/yeonsu/`에 있습니다.
+
+```
+화면
+├── LoadingActivity → StartActivity → HomeActivity   시작과 메인 (카드 3장)
+├── QuestTypesActivity                                 퀘스트 종류 선택
+├── QuestListActivity                                  카테고리별 퀘스트 목록
+├── QuestDetailActivity                                퀘스트 진행 (단계, 사진, 시작/중단)
+├── QuestDoneActivity                                  완료 화면 (연저씨 표정 6종)
+├── DailyFlowActivity · ScenarioActivity               일상 퀘스트 (내비, 음성 안내)
+├── RecordsActivity                                    마이페이지 (기록, 뱃지)
+└── DriveLoadingActivity → DriveActivity               일반 주행 안내
+
+공통
+├── FadeActivity       모든 화면의 부모. 화면 전환에 페이드인을 적용
+├── ScreenActivity     헤더, 배경, 도움말을 갖춘 화면 틀
+├── HeaderBar          상단 바. 도움말 버튼이 모든 화면에서 같은 자리
+└── HelpOverlay        도움말 오버레이
+
+데이터와 판정
+├── QuestData          퀘스트 목록, 진행 상태 저장, 뱃지
+└── QuestSignals       퀘스트별 차량 신호 판정 (Detector)
+```
+
+---
+
+##  실행 방법
+
+1. Android Studio에서 이 폴더를 열고 **Sync Project with Gradle Files**를 실행합니다. (`local.properties`는 자동 생성됩니다.)
+2. 실행 기기를 **Pleos Connect 에뮬레이터**로 선택합니다. (AVD 이름 예: `Pleos_Connect_v2.1.0`)
+3. ▶ Run을 누르면 로딩 후 연저씨 시작 화면이 뜹니다.
+
+앱은 에뮬레이터의 `운전자` 사용자 계정에서 실행됩니다. 요구 환경은 Android SDK API 34 이상, minSdk 28, Kotlin입니다.
+
+---
+
+##  한계점 및 제약
+
+- 앱이 스스로 분할 화면을 만들 수 없다는 점 -> 일반 주행은 내비를 켠 뒤 손잡이를 왼쪽으로 끌어 오른쪽 1/3에 연저씨를 놓는 방식으로 대체
+- 에뮬레이터에서는 `PERF_VEHICLE_SPEED`가 없음 -> 그래서 아러한 일부 퀘스트는 실차에서만 확인할 수 있음
+- 일반 주행 화면의 일부 기능은 아직 구현 중
+
+---
+
+<div align="center">
+
+**연저씨와 함께 차근차근... ** 🚗🚗🚗
+
+</div>

@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp" android:height="96dp" android:viewportWidth="96" android:viewportHeight="96">
+    <!-- 리본 -->
+    <path android:fillColor="#E0556B" android:pathData="M30,58 L22,90 L36,82 L44,92 L48,62 Z"/>
+    <path android:fillColor="#C93F57" android:pathData="M66,58 L74,90 L60,82 L52,92 L48,62 Z"/>
+    <!-- 메달 -->
+    <path android:fillColor="#F2B731" android:pathData="M48,6 a38,38 0 1,0 0.001,0 Z"/>
+    <path android:fillColor="#FFD965" android:pathData="M48,14 a30,30 0 1,0 0.001,0 Z"/>
+    <path android:fillColor="#F2B731" android:pathData="M48,22 L54.2,38.4 L71.7,39.2 L58,50.1 L62.7,67 L48,57.3 L33.3,67 L38,50.1 L24.3,39.2 L41.8,38.4 Z"/>
+</vector>

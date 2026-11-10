@@ -13,4 +13,9 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+
+    <!-- 연저씨 화면 공통: 화면이 열릴 때 비치는 바탕을 연한 하늘색으로 -->
+    <style name="Theme.Yeonsu" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@color/yeonsu_sky</item>
+    </style>
 </resources>

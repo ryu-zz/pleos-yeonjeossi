@@ -1,0 +1,13 @@
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="style.css"></head><body>
+<h1 style="margin-bottom:36px">퀘스트 완료 확인법</h1>
+<div class="row">
+<div class="box"><h3>① 운전자가 조작</h3><p>예: 운전석 문 열기, 방향지시등 켜기, 리어 와이퍼 켜기</p><span class="tag amber">실제 차량 조작</span></div>
+<div class="arrow">›</div>
+<div class="box"><h3>② Pleos Vehicle SDK</h3><p>문·와이퍼·조명·공조·창문 상태를 읽어요</p><ul><li><code>getDoor()</code> 문 위치 · 잠금</li><li><code>getWiper()</code> 앞 / 뒤 와이퍼</li><li>조명 · 공조 · 창문 · 시트</li></ul></div>
+<div class="arrow">›</div>
+<div class="box"><h3>③ Detector (QuestSignals)</h3><p>퀘스트마다 단계 목록을 가지고, 신호가 목표 상태가 되면 다음 단계로 넘겨요.</p><ul><li>켜기 → 끄기 같은 2단계 퀘스트</li><li>실패해도 힌트로 다시 안내</li></ul></div>
+<div class="arrow">›</div>
+<div class="box"><h3>④ 앱 화면 갱신</h3><p>단계 체크 표시, 완료 시 연저씨 칭찬 화면, 마이페이지 기록과 카테고리 뱃지</p><span class="tag green">차량 신호로 확인됨</span></div>
+</div>
+<div class="foot">일상 퀘스트는 내비 앱에서 경로를 정하면 NaviHelper가 출발·도착 신호를 받고, 연저씨가 TTS 음성으로 안내합니다.</div>
+</body></html>
