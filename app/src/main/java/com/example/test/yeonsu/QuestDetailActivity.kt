@@ -21,6 +21,49 @@ import com.example.test.R
 class QuestDetailActivity : ScreenActivity() {
     override val parentScreen: Class<out Activity> = QuestListActivity::class.java
     private val store by lazy { QuestStore(this) }
+    // ── 실제 차량 신호: QuestSignals에 정의된 퀘스트는 차량 값이 바뀌면 자동 완료 (팀장 브랜치 방식) ──
+    private var vehicle: ai.pleos.playground.vehicle.Vehicle? = null
+    private var detector: Detector? = null
+    private var lastValue: Any? = null
+    private var connected = false
+    private var finished = false
+    private val poll = android.os.Handler(android.os.Looper.getMainLooper())
+    private val pollTick = object : Runnable {
+        override fun run() {
+            if (finished) return
+            val v = vehicle; val d = detector
+            if (v != null && d != null) d.read(v) { now -> runOnUiThread { onSignal(d, now) } }
+            poll.postDelayed(this, 800)
+        }
+    }
+    private fun onSignal(d: Detector, now: Any?) {
+        if (finished || now == null) return
+        val prev = lastValue
+        lastValue = now
+        val q = QuestSession.selected()
+        if (!connected) { connected = true; refresh() }
+        if (prev != null && store.state(q).status == "doing" && d.done(prev, now)) {
+            android.util.Log.d("YeonsuSignal", "${q.name}: $prev -> $now 완료")
+            finished = true
+            while (store.state(q).status == "doing" && !store.advance(q)) { }
+            goTo(QuestDoneActivity::class.java)
+        }
+    }
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (QuestSession.type != "vehicle") return
+        val d = QuestSignals.find(QuestSession.selected().name) ?: return
+        try {
+            detector = d
+            vehicle = ai.pleos.playground.vehicle.Vehicle(applicationContext).also { it.initialize() }
+            poll.postDelayed(pollTick, 800)
+        } catch (e: Throwable) { android.util.Log.e("YeonsuSignal", "차량 연결 실패 $e") }
+    }
+    override fun onDestroy() {
+        poll.removeCallbacks(pollTick)
+        try { vehicle?.release() } catch (_: Throwable) {}
+        super.onDestroy()
+    }
 
     /** 출발 준비(퀘스트 목록) 화면과 같은 배경 */
     override fun screenBackground(): android.graphics.drawable.Drawable =
@@ -159,6 +202,12 @@ class QuestDetailActivity : ScreenActivity() {
         actions.addView(stop, LinearLayout.LayoutParams(0, px(108f), 1f).apply { leftMargin = px(26f) })
         col.addView(actions, LinearLayout.LayoutParams(-1, -2).apply { topMargin = px(36f) })
 
+        // 차량 신호로 자동 완료되는 퀘스트는 안내 한 줄 (진행 중일 때만)
+        if (s.status == "doing") detector?.let { d ->
+            col.addView(t(if (connected) "차량 연결됨 · ${d.hint}" else "차량 연결 중…", 26f, Color.parseColor("#2D7653"), true).apply {
+                setPadding(0, px(26f), 0, 0)
+            })
+        }
         // 미리보기 조작 (진행 중일 때만)
         if (s.status == "doing") {
             col.addView(t("미리보기 조작 · 실제 차량 조작이 아닙니다", 22f, Color.parseColor("#758298")).apply { setPadding(0, px(22f), 0, px(8f)) })
