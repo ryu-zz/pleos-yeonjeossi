@@ -63,6 +63,7 @@ object QuestSignals {
     private val seatTemp = r<Int> { v, ok, f -> v.getSeat().getHvacSeatTemperature(seatL, ok, f) }
     private val wheel = r<Float> { v, ok, f -> v.getSteeringWheel().getCurrentSteeringWheelAngle(ok, f) }
     private val cruise = r<Any> { v, ok, f -> v.getDrivingMode().getCruiseControlState(ok, f) }
+    private val soc = r<Int> { v, ok, f -> v.getEvBattery().getEvBatteryStateOfCharge(ok, f) }
     private val chargePort = r<Boolean> { v, ok, f -> v.getEvBattery().isEvChargePortOpen(ok, f) }
 
     private val map: Map<String, Detector> = mapOf(
@@ -94,6 +95,8 @@ object QuestSignals {
         "운전대 왼쪽으로 돌렸다가 풀기" to pair("운전대를 왼쪽으로 돌리면 첫 단계가 끝나요", "가운데로 돌려놓으면 자동으로 완료돼요", wheel) { num(it) < -5.0 },
         // 에뮬레이터 콘솔에서는 Driving Mode의 "Full autonomous"가 크루즈 작동(ACTIVATED), "Ready"가 대기(ENABLED)
         "크루즈 켰다가 끄기" to pair("크루즈를 켜면 첫 단계가 끝나요", "크루즈를 끄면 자동으로 완료돼요", cruise) { str(it) == "ACTIVATED" },
+        // 내 브랜치에서 가져옴: 배터리 충전율(SOC) 값이 바뀌면 완료 (콘솔 Battery SOC)
+        "충전 상태 확인" to Detector(listOf("배터리 충전율 값이 바뀌면 자동으로 완료돼요"), soc) { _, p, n -> p != null && n != null && num(p) != num(n) },
         "충전구 열었다가 닫기" to pair("충전구를 열면 첫 단계가 끝나요", "충전구를 닫으면 자동으로 완료돼요", chargePort) { it == true },
     )
 

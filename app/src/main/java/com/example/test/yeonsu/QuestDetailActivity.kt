@@ -25,6 +25,9 @@ class QuestDetailActivity : ScreenActivity() {
     private var detector: Detector? = null
     private var lastValue: Any? = null
     private var connected = false
+    // 내비·음성 퀘스트(내 브랜치에서 가져옴): 음성 인식·내비 신호가 오면 자동 완료
+    private var events: QuestEvents? = null
+    private var eventsReady = false
     private val poll = android.os.Handler(android.os.Looper.getMainLooper())
     private val pollTick = object : Runnable {
         override fun run() {
@@ -49,6 +52,21 @@ class QuestDetailActivity : ScreenActivity() {
     }
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
+        QuestEvents.find(QuestSession.selected().name)?.let { e ->
+            events = e
+            try {
+                e.begin(this, { runOnUiThread { eventsReady = true; refresh() } }) { why ->
+                    runOnUiThread {
+                        val q = QuestSession.selected()
+                        if (success || store.state(q).status != "doing") return@runOnUiThread
+                        android.util.Log.d("YeonsuSignal", "${q.name}: $why 완료")
+                        while (store.state(q).status == "doing") { if (store.advance(q, verified = true)) { success = true; break } }
+                        if (success) goTo(QuestDoneActivity::class.java) else refresh()
+                    }
+                }
+            } catch (t: Throwable) { android.util.Log.e("YeonsuSignal", "내비·음성 연결 실패 $t") }
+            return
+        }
         val d = QuestSignals.find(QuestSession.selected().name) ?: return
         try {
             detector = d
@@ -59,6 +77,7 @@ class QuestDetailActivity : ScreenActivity() {
     override fun onDestroy() {
         poll.removeCallbacks(pollTick)
         try { vehicle?.release() } catch (_: Throwable) {}
+        events?.release()
         super.onDestroy()
     }
     private var primaryBtn: View? = null
@@ -122,6 +141,12 @@ class QuestDetailActivity : ScreenActivity() {
             // 두 버튼이 위쪽 박스들과 같은 가로 폭을 반반씩 나눠 쓴다
         }
         panel.addView(actions)
+        // 내비·음성 퀘스트는 무엇을 하면 완료되는지 한 줄 안내 (진행 중일 때만)
+        if (!success && s.status == "doing") events?.let { e ->
+            panel.addView(tv(if (eventsReady) e.hint else "연결 중…", 20f, Color.parseColor("#2D7653"), true).apply {
+                setPadding(0, dp(16f), 0, 0)
+            })
+        }
 
         if (!success && s.status == "doing") {
             // 차량 퀘스트는 차량 신호로만 완료한다. 일상 퀘스트(차량 신호가 없는 임시 단계)만 버튼으로 넘긴다.

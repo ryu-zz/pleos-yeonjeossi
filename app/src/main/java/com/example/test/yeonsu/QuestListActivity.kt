@@ -146,7 +146,7 @@ class QuestListActivity : ScreenActivity() {
             isClickable = true; isFocusable = true
             setOnClickListener {
                 // 차량 신호로 인식하지 못하는 차량 퀘스트는 아직 구현 전이다
-                if (QuestSession.type == "vehicle" && QuestSignals.find(q.name) == null) { showBanner("구현 예정..."); return@setOnClickListener }
+                if (QuestSession.type == "vehicle" && QuestSignals.find(q.name) == null && QuestEvents.find(q.name) == null) { showBanner("구현 예정..."); return@setOnClickListener }
                 QuestSession.questIndex = i
                 // 일상 퀘스트의 카테고리 맨 위 퀘스트는 시나리오부터 보여준다
                 if (QuestSession.type == "daily" && i == 0 && QuestData.flows.containsKey(QuestSession.category)) {

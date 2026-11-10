@@ -16,6 +16,8 @@ import java.util.Locale
 /** 연저씨 · 마이페이지 (HTML records.js). 완료/진행 개수와 최근 완료 기록. */
 class RecordsActivity : ScreenActivity() {
     override val parentScreen: Class<out Activity> = HomeActivity::class.java
+    /** 퀘스트 실행 화면과 같은 배경 */
+    override fun screenBackground(): android.graphics.drawable.Drawable = questBackground()
     private val store by lazy { QuestStore(this) }
 
     private var statsView: View? = null
