@@ -21,61 +21,89 @@ class QuestDetailActivity : ScreenActivity() {
     private var success = false
 
     // ── 실제 차량 신호: QuestSignals에 정의된 퀘스트는 차량 값이 바뀌면 자동 완료 ──
+    // 판정은 화면이 보이고(onStart~onStop) 퀘스트가 수행 중일 때만 한다. 세션(SignalSession)이 다른 수행·다른 퀘스트의
+    // 늦은 응답과 겹친 조회를 걸러 낸다. 화면이 열릴 때의 퀘스트를 고정해 두고, 그 퀘스트에만 결과를 반영한다.
+    private val quest: Quest by lazy { QuestSession.selected() }
     private var vehicle: Vehicle? = null
-    private var detector: Detector? = null
-    private var lastValue: Any? = null
+    private var hasDetector = false
+    private var pendingReason: String? = null
     private var connected = false
-    // 내비·음성 퀘스트(내 브랜치에서 가져옴): 음성 인식·내비 신호가 오면 자동 완료
+    // 내비·음성 퀘스트(팀 추가): 음성 인식·내비 신호가 오면 자동 완료. 화면이 보이고 수행 중일 때만 반영한다.
     private var events: QuestEvents? = null
     private var eventsReady = false
+    private var visible = false
+    private val session by lazy { SignalSession(quest.id) { QuestSignals.find(quest.name) } }
     private val poll = android.os.Handler(android.os.Looper.getMainLooper())
     private val pollTick = object : Runnable {
         override fun run() {
-            if (success) return
-            val v = vehicle; val d = detector
-            if (v != null && d != null) d.read(v) { now -> runOnUiThread { onSignal(d, now) } }
+            if (success || !visible) return
+            val v = vehicle
+            val d = session.detector
+            val t = session.request(android.os.SystemClock.uptimeMillis())
+            if (v != null && d != null && t != null) d.read(v) { now -> runOnUiThread { onSignal(t, now) } }
             poll.postDelayed(this, 800)
         }
     }
-    private fun onSignal(d: Detector, now: Any?) {
-        if (success || now == null) return
-        val prev = lastValue
-        lastValue = now
-        val q = QuestSession.selected()
-        if (!connected) { connected = true; refresh() }
-        val st = store.state(q)
-        if (prev != null && st.status == "doing" && d.done(st.step, prev, now)) {
-            android.util.Log.d("YeonsuSignal", "${q.name}: ${st.step + 1}단계 $prev -> $now")
-            if (store.advance(q, verified = true)) { success = true; goTo(QuestDoneActivity::class.java) }
-            else refresh()
-        }
+    /** 화면이 보이고 수행 중이면 판정 세션을 새로 연다(이전 값·이탈 중 변화는 버린다). */
+    private fun openSession() {
+        poll.removeCallbacks(pollTick)
+        session.end()
+        if (!hasDetector || pendingReason != null || success || !visible || !store.state(quest).running) return
+        session.begin()
+        poll.postDelayed(pollTick, 800)
+    }
+    private fun closeSession() {
+        session.end()
+        poll.removeCallbacks(pollTick)
+    }
+    private fun onSignal(t: SignalSession.Ticket, now: Any?) {
+        if (success || !visible) return
+        if (!connected && now != null) { connected = true; refresh() }
+        val st = store.state(quest)
+        if (!st.running) { closeSession(); return }
+        if (session.onResponse(t, st.step, now) != SignalSession.Result.STAGE_DONE) return
+        android.util.Log.d("YeonsuSignal", "${quest.name}: ${st.step + 1}단계 -> $now")
+        if (store.advance(quest, verified = true)) {
+            success = true; closeSession(); goTo(QuestDoneActivity::class.java)
+        } else refresh()
     }
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
-        QuestEvents.find(QuestSession.selected().name)?.let { e ->
+        QuestEvents.find(quest.name)?.let { e ->
             events = e
             try {
                 e.begin(this, { runOnUiThread { eventsReady = true; refresh() } }) { why ->
                     runOnUiThread {
-                        val q = QuestSession.selected()
-                        if (success || store.state(q).status != "doing") return@runOnUiThread
-                        android.util.Log.d("YeonsuSignal", "${q.name}: $why 완료")
-                        while (store.state(q).status == "doing") { if (store.advance(q, verified = true)) { success = true; break } }
+                        // 중단·화면 이탈·완료 뒤에 온 사건은 무시한다(이 화면을 연 퀘스트에만 반영)
+                        if (success || !visible || !store.state(quest).running) return@runOnUiThread
+                        android.util.Log.d("YeonsuSignal", "${quest.name}: $why 완료")
+                        while (store.state(quest).running) { if (store.advance(quest, verified = true)) { success = true; break } }
                         if (success) goTo(QuestDoneActivity::class.java) else refresh()
                     }
                 }
             } catch (t: Throwable) { android.util.Log.e("YeonsuSignal", "내비·음성 연결 실패 $t") }
             return
         }
-        val d = QuestSignals.find(QuestSession.selected().name) ?: return
+        val d = QuestSignals.find(quest.name) ?: return
+        hasDetector = true
+        pendingReason = d.pendingReason
+        if (pendingReason != null) return   // 자동 판정 보류: 차량 연결·조회를 하지 않는다
         try {
-            detector = d
             vehicle = Vehicle(applicationContext).also { it.initialize() }
-            poll.postDelayed(pollTick, 800)
         } catch (e: Throwable) { android.util.Log.e("YeonsuSignal", "차량 연결 실패 $e") }
     }
+    override fun onStart() {
+        super.onStart()
+        visible = true
+        openSession()
+    }
+    override fun onStop() {
+        visible = false
+        closeSession()   // 홈 이동 등으로 화면이 안 보이면 조회·판정을 멈춘다
+        super.onStop()
+    }
     override fun onDestroy() {
-        poll.removeCallbacks(pollTick)
+        closeSession()
         try { vehicle?.release() } catch (_: Throwable) {}
         events?.release()
         super.onDestroy()
@@ -90,7 +118,7 @@ class QuestDetailActivity : ScreenActivity() {
     }
     override fun build(content: FrameLayout, w: Int, h: Int) {
         primaryBtn = null
-        val q = QuestSession.selected()
+        val q = quest
         val s = store.state(q)
         val cats = QuestData.cats.getValue(QuestSession.type)
 
@@ -127,14 +155,15 @@ class QuestDetailActivity : ScreenActivity() {
             actions.addView(button("기록 보기", primary = false) { goTo(RecordsActivity::class.java) },
                 LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(14f) })
         } else {
-            val label = when (s.status) { "doing" -> "계속하기"; "done" -> "다시 해보기"; else -> "퀘스트 시작" }
-            primaryBtn = button(label) {
-                if (s.status == "doing") Toast.makeText(this, "이미 진행 중이에요. ${q.desc}", Toast.LENGTH_SHORT).show()
-                else { store.start(q); refresh() }
+            // 완료한 퀘스트를 다시 해도 저장된 status 는 done 으로 남고, 수행 중 여부는 running 으로 본다.
+            val label = when { pendingReason != null -> "자동 판정 보류 중"; s.running -> "계속하기"; s.status == "done" -> "다시 해보기"; else -> "퀘스트 시작" }
+            primaryBtn = button(label, enabled = pendingReason == null) {
+                if (s.running) Toast.makeText(this, "이미 진행 중이에요. ${q.desc}", Toast.LENGTH_SHORT).show()
+                else { store.start(q); openSession(); refresh() }
             }
             actions.addView(primaryBtn, LinearLayout.LayoutParams(0, -2, 1f))
-            val stopBtn = button("중단", primary = false, enabled = s.status == "doing") {
-                store.stop(q); refresh()
+            val stopBtn = button("중단", primary = false, enabled = s.running) {
+                closeSession(); store.stop(q); refresh()
                 Toast.makeText(this, "퀘스트를 중단했어요. 완료 기록은 추가하지 않았어요.", Toast.LENGTH_SHORT).show()
             }
             actions.addView(stopBtn, LinearLayout.LayoutParams(0, -2, 1f).apply { leftMargin = dp(14f) })
@@ -142,13 +171,24 @@ class QuestDetailActivity : ScreenActivity() {
         }
         panel.addView(actions)
         // 내비·음성 퀘스트는 무엇을 하면 완료되는지 한 줄 안내 (진행 중일 때만)
-        if (!success && s.status == "doing") events?.let { e ->
+        if (!success && s.running) events?.let { e ->
             panel.addView(tv(if (eventsReady) e.hint else "연결 중…", 20f, Color.parseColor("#2D7653"), true).apply {
                 setPadding(0, dp(16f), 0, 0)
             })
         }
 
-        if (!success && s.status == "doing") {
+        // 자동 판정 보류(신뢰할 수 있는 신호 없음): 사유를 보여주고 완료시키지 않는다
+        pendingReason?.let { r ->
+            panel.addView(tv(r, 20f, Color.parseColor("#9A5B00"), true).apply {
+                background = rounded(Color.parseColor("#FFF1CC"), 16f); setPadding(dp(20f), dp(14f), dp(20f), dp(14f)); setLineSpacing(0f, 1.2f)
+            }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(18f) })
+        }
+        if (!success && s.running) {
+            // 차량 신호로 판정하는 퀘스트: 지금 단계의 판정 기준을 보여준다(예: 끄기는 실제 OFF 값, 운전대는 가운데 ±5도).
+            session.detector?.let { d ->
+                panel.addView(tv((if (connected) "차량 연결됨 · " else "차량 연결 중… · ") + d.hints[s.step.coerceIn(0, d.hints.size - 1)],
+                    18f, Color.parseColor("#2D7653"), true).apply { setPadding(0, dp(18f), 0, 0); setLineSpacing(0f, 1.2f) })
+            }
             // 차량 퀘스트는 차량 신호로만 완료한다. 일상 퀘스트(차량 신호가 없는 임시 단계)만 버튼으로 넘긴다.
             if (QuestSession.type != "vehicle") {
                 panel.addView(tv(q.steps[s.step.coerceAtMost(q.steps.size - 1)] + "　→", 22f, ScreenActivity.NAVY).apply {

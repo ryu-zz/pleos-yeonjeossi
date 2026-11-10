@@ -37,6 +37,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.material)
     testImplementation(libs.junit)
+    // 단위 테스트에서 실제 JSON 저장 경로(수행 기록)를 확인하기 위한 org.json (안드로이드 단위 테스트의 기본 org.json 은 빈 껍데기)
+    testImplementation("org.json:json:20240303")
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
 
