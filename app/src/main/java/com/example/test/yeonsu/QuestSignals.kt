@@ -51,6 +51,7 @@ object QuestSignals {
     private val turn = r<Any> { v, ok, f -> v.getTurnSignal().getCurrentTurnSignalState(ok, f) }
     private val wiper = r<Any> { v, ok, f -> v.getWiper().getCurrentWiperSwitch(WindowArea(WindowValue.FRONT_WINDSHIELD), ok, f) }
     private val wiperOn = r<Any> { v, ok, f -> v.getWiper().getCurrentWiperState(WindowArea(WindowValue.FRONT_WINDSHIELD), ok, f) }
+    private val rearWiperOn = r<Any> { v, ok, f -> v.getWiper().getCurrentWiperState(WindowArea(WindowValue.REAR_WINDSHIELD), ok, f) }
     private val low = r<Any> { v, ok, f -> v.getLight().getCurrentLowBeamLightState(ok, f) }
     private val high = r<Any> { v, ok, f -> v.getLight().getCurrentHighBeamLightState(ok, f) }
     private val ac = r<Boolean> { v, ok, f -> v.getHVAC().getHvacAcState(hvacAll, ok, f) }
@@ -74,6 +75,7 @@ object QuestSignals {
         "자동 와이퍼 켰다가 끄기" to pair("와이퍼를 AUTO에 놓으면 첫 단계가 끝나요", "와이퍼를 끄면 자동으로 완료돼요", wiper) { str(it) == "AUTO" },
         "저속 와이퍼 켰다가 끄기" to pair("와이퍼를 LOW에 놓으면 첫 단계가 끝나요", "와이퍼를 끄면 자동으로 완료돼요", wiper) { str(it) == "CONTINUOUS_LEVEL_1" },
         "고속 와이퍼 켰다가 끄기" to pair("와이퍼를 HIGH에 놓으면 첫 단계가 끝나요", "와이퍼를 끄면 자동으로 완료돼요", wiper) { str(it) == "CONTINUOUS_LEVEL_3" },
+        "리어 와이퍼 켰다가 끄기" to pair("리어 와이퍼를 켜면 첫 단계가 끝나요", "리어 와이퍼를 끄면 자동으로 완료돼요", rearWiperOn) { str(it) == "ON" },
         "하향등 켰다가 끄기" to pair("전조등(하향등)을 켜면 첫 단계가 끝나요", "전조등을 끄면 자동으로 완료돼요", low) { str(it) == "ON" },
         "상향등 켰다가 끄기" to pair("상향등을 켜면 첫 단계가 끝나요", "상향등을 끄면 자동으로 완료돼요", high) { str(it) == "ON" },
         "운전석 창문 열었다가 닫기" to pair("운전석 창문을 내리면 첫 단계가 끝나요", "창문을 완전히 닫으면 자동으로 완료돼요", winFL) { num(it) > 0 },
