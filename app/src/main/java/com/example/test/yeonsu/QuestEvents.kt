@@ -67,10 +67,21 @@ class QuestEvents private constructor(
 
     companion object {
         fun find(name: String): QuestEvents? = when (name) {
-            "목적지 음성 검색" -> voice("목적지를 말하면 자동으로 완료돼요") { it.isNotBlank() }
+            "목적지 음성 검색" -> voice("\"서울역으로 가자\"처럼 목적지를 말하면 자동으로 완료돼요") { isDestination(it) }
             "주유소·충전소 검색" -> voice("\"가까운 충전소 찾아줘\"라고 말하면 자동으로 완료돼요") { it.contains("충전소") || it.contains("주유소") }
             "경유지 추가" -> waypoint()
             else -> null
+        }
+
+        /** 장소를 뜻하는 끝말 */
+        private val PLACE = listOf("역", "시청", "공원", "병원", "마트", "터미널", "공항", "학교", "타워", "백화점", "주차장")
+        /** 길 안내를 부탁하는 말투 (띄어쓰기 없이 비교) */
+        private val ASK = listOf("가자", "가줘", "가 줘", "안내해", "데려다", "길찾", "가고싶", "가려고", "까지")
+
+        /** 장소 끝말이 있거나, 길 안내 말투가 있으면 목적지를 말한 것으로 본다. 식당 이름처럼 끝말이 없어도 "~로 가자"면 통과. */
+        private fun isDestination(text: String): Boolean {
+            val t = text.replace(" ", "")
+            return PLACE.any { t.contains(it) } || ASK.any { t.contains(it.replace(" ", "")) }
         }
 
         private fun voice(hint: String, ok: (String) -> Boolean): QuestEvents {

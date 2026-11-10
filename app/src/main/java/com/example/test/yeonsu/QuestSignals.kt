@@ -50,12 +50,6 @@ object QuestSignals {
     /** 꺼짐(Not ready)일 때 SDK가 값 대신 오류를 주므로 OFF로 바꿔 읽는다. */
     private val cruise = r<Any> { v, ok, _ -> v.getDrivingMode().getCruiseControlState({ ok(it?.toString() ?: "OFF") }, { ok("OFF") }) }
     private val soc = r<Int> { v, ok, f -> v.getEvBattery().getEvBatteryStateOfCharge(ok, f) }
-    /** 경고등 하나의 상태(OFF/ON/BLINK)만 꺼내 읽는다. 목록에 없으면 OFF로 본다. */
-    private fun telltale(type: ai.pleos.playground.vehicle.constant.telltale.TelltaleType) = r<Any> { v, ok, f ->
-        v.getSafety().getTelltalesInfo({ t -> ok(t?.telltales?.firstOrNull { it.type == type }?.state?.toString() ?: "OFF") }, f)
-    }
-    private val tpms = telltale(ai.pleos.playground.vehicle.constant.telltale.TelltaleType.TPMS)
-    private val airbag = telltale(ai.pleos.playground.vehicle.constant.telltale.TelltaleType.AIRBAG)
     private const val RETRY = " (이미 그 상태면 한 번 바꿨다가 다시 해 주세요)"
 
     private val map: Map<String, Detector> = mapOf(
@@ -88,9 +82,6 @@ object QuestSignals {
         "뒷좌석 창문 잠금" to Detector("뒷좌석 창문 잠금을 켜면 자동으로 완료돼요$RETRY", winLockRL, becomes { it == true }),
         "크루즈 버튼" to Detector("크루즈 컨트롤을 준비(ENABLED) 상태로 켜면 자동으로 완료돼요$RETRY", cruise, becomes { str(it) == "ENABLED" || str(it) == "ACTIVATED" }),
         "충전 상태 확인" to Detector("배터리 충전율 값이 바뀌면 자동으로 완료돼요", soc) { p, n -> p != null && n != null && num(p) != num(n) },
-        "타이어 경고등 연습" to Detector("타이어 경고등(TPMS)이 켜지면 자동으로 완료돼요$RETRY", tpms, becomes { str(it) != "OFF" }),
-        "에어백 전개 연습" to Detector("에어백 경고등이 켜지면 자동으로 완료돼요$RETRY", airbag, becomes { str(it) != "OFF" }),
-        "전자식 주차 브레이크" to Detector("주차 브레이크 표시등이 켜지면 자동으로 완료돼요$RETRY", telltale(ai.pleos.playground.vehicle.constant.telltale.TelltaleType.ELECTRONIC_PARKING_BRAKE), becomes { str(it) != "OFF" }),
         "충전구 열기" to Detector("충전구를 열면 자동으로 완료돼요$RETRY", chargePort, becomes { it == true }),
     )
 

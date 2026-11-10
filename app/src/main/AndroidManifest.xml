@@ -9,14 +9,10 @@
     <uses-permission android:name="pleos.car.permission.CAR_WINDOWS" /> <!-- Wiper, Window -->
     <uses-permission android:name="pleos.car.permission.CAR_CLIMATE" /> <!-- 공조, 시트 열선·통풍 -->
     <uses-permission android:name="pleos.car.permission.CAR_LIGHTS" />  <!-- 전조등, 방향지시등 -->
-    <uses-permission android:name="pleos.car.permission.CAR_SAFETY" />  <!-- 경고등(타이어, 에어백) -->
-    <uses-permission android:name="pleos.car.permission.PRIVATE_CAR_SAFETY" />  <!-- 경고등 목록 읽기(getTelltalesInfo) -->
 
     <!-- 준비 중 SDK (시험) -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />  <!-- 내비 -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />  <!-- 내비 -->
-    <uses-permission android:name="pleos.car.permission.NAVI_CUSTOM_ROUTE" />  <!-- 내비 -->
-    <uses-permission android:name="pleos.car.permission.NAVI_CUSTOM_ETC" />  <!-- 내비 -->
     <uses-permission android:name="pleos.car.permission.NAVI_CUSTOM_MAP" />  <!-- 내비 -->
     <uses-permission android:name="pleos.car.permission.FUSED_LOCATION" /> <!-- 위치 (dangerous: 실행 중 허용 필요) -->
     <uses-permission android:name="pleos.car.permission.STT_SERVICE" />    <!-- 음성 인식 -->
