@@ -52,6 +52,7 @@ class DriveActivity : FadeActivity() {
         }
         setContentView(root)
         initTts()
+        startSpeedProbe()
         // 일반 주행 카드에서 왔으면 먼저 이 화면을 만들어 두고 그 위에 내비를 연다.
         // 사용자가 내비 오른쪽 손잡이(⋮)를 왼쪽으로 끌면 이 앱이 오른쪽 칸에 나타난다.
         if (savedInstanceState == null && intent.getBooleanExtra(EXTRA_OPEN_NAVI, false)) {
@@ -258,8 +259,101 @@ class DriveActivity : FadeActivity() {
     }
 
     override fun onDestroy() {
+        stopSpeedProbe()
         try { tts?.release() } catch (_: Exception) {}
         super.onDestroy()
+    }
+
+    // ───── [ajh 시험] 안드로이드 표준 차량 API로 속도 읽기 (확인 후 삭제) ─────
+    // 확인 로그: adb logcat -s SpeedProbe
+    private var car: android.car.Car? = null
+    private var carProps: android.car.hardware.property.CarPropertyManager? = null
+    private var speedLabel: TextView? = null
+
+    // ── 급정거 판정 ──
+    // 속도는 약 0.1초마다, 1km/h 단위로 와서 0.1초 차이로 보면 값이 튄다. 그래서 "1초 동안 얼마나 줄었나"로 본다.
+    // 기준: 1초 동안 시속 14km 이상 감속(약 0.4G, 일반 승용차의 강한 제동 수준) + 감속 시작 속도가 시속 20km 이상.
+    //   - 저속에서 멈추는 건 흔하므로 제외한다.
+    //   - 같은 급정거가 여러 번 잡히지 않게 8초 동안은 다시 알리지 않는다.
+    // 같은 주행(이 화면)에서 두 번째부터는 룸미러로 뒤차를 확인하라고 말한다.
+    private val samples = ArrayDeque<Pair<Long, Float>>()  // (시각 ms, 속도 km/h)
+    private var hardBrakeCount = 0
+    private var lastHardBrakeAt = 0L
+
+    private val speedCallback = object : android.car.hardware.property.CarPropertyManager.CarPropertyEventCallback {
+        override fun onChangeEvent(value: android.car.hardware.CarPropertyValue<*>) {
+            val mps = (value.value as? Float) ?: return
+            val kmh = mps * 3.6f
+            val now = android.os.SystemClock.elapsedRealtime()
+            samples.addLast(now to kmh)
+            while (samples.isNotEmpty() && now - samples.first().first > WINDOW_MS + 300) samples.removeFirst()
+            // 약 1초 전 값과 비교
+            val old = samples.firstOrNull { now - it.first <= WINDOW_MS + 300 && now - it.first >= WINDOW_MS - 200 }
+            val decel = if (old != null) (old.second - kmh) / ((now - old.first) / 1000f) else 0f  // 양수 = 감속
+            runOnUiThread { speedLabel?.text = "속도 %.0f km/h\n1초 감속 %.1f km/h".format(kmh, decel) }
+            if (old != null && old.second >= MIN_SPEED_KMH && decel >= HARD_BRAKE_KMH_PER_S &&
+                now - lastHardBrakeAt >= COOLDOWN_MS) {
+                lastHardBrakeAt = now
+                hardBrakeCount++
+                Log.i("SpeedProbe", "급정거 감지 #$hardBrakeCount: %.0f → %.0f km/h, 초당 %.1f km/h 감속".format(old.second, kmh, decel))
+                runOnUiThread { onHardBrake(hardBrakeCount) }
+            }
+        }
+        override fun onErrorEvent(propertyId: Int, areaId: Int) { Log.e("SpeedProbe", "속도 오류 prop=$propertyId area=$areaId") }
+    }
+
+    private fun startSpeedProbe() {
+        // 화면 왼쪽 위에 속도 표시(시험용)
+        speedLabel = TextView(this).apply {
+            textSize = 22f; setTextColor(Color.WHITE); setBackgroundColor(Color.parseColor("#AA000000"))
+            setPadding(24, 16, 24, 16); text = "속도 읽는 중…"; elevation = 50f
+        }
+        (window.decorView as FrameLayout).addView(speedLabel,
+            FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START).apply { topMargin = 140; leftMargin = 40 })
+        val perm = "android.car.permission.CAR_SPEED"
+        if (checkSelfPermission(perm) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            Log.i("SpeedProbe", "CAR_SPEED 권한 요청")
+            requestPermissions(arrayOf(perm), REQ_SPEED)
+            return
+        }
+        connectSpeed()
+    }
+
+    override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, results: IntArray) {
+        super.onRequestPermissionsResult(code, perms, results)
+        if (code != REQ_SPEED) return
+        if (results.firstOrNull() == android.content.pm.PackageManager.PERMISSION_GRANTED) connectSpeed()
+        else { Log.e("SpeedProbe", "CAR_SPEED 권한 거부"); speedLabel?.text = "속도 권한 거부됨" }
+    }
+
+    private fun connectSpeed() {
+        try {
+            val c = android.car.Car.createCar(applicationContext)
+            car = c
+            val pm = c.getCarManager(android.car.Car.PROPERTY_SERVICE) as android.car.hardware.property.CarPropertyManager
+            carProps = pm
+            val ok = pm.registerCallback(speedCallback, android.car.VehiclePropertyIds.PERF_VEHICLE_SPEED,
+                android.car.hardware.property.CarPropertyManager.SENSOR_RATE_FASTEST)
+            Log.i("SpeedProbe", "속도 구독 시작 ok=$ok")
+            if (!ok) speedLabel?.text = "속도 구독 실패"
+        } catch (e: Throwable) {
+            Log.e("SpeedProbe", "속도 연결 실패: ${e::class.java.simpleName}: ${e.message}", e)
+            speedLabel?.text = "속도 연결 실패\n${e::class.java.simpleName}"
+        }
+    }
+
+    /** 급정거 코치. 1번째는 비상등, 2번째부터는 룸미러로 뒤차 확인. */
+    private fun onHardBrake(count: Int) {
+        if (!::activeLayer.isInitialized) return
+        if (!driving) startDriving()   // 대기 화면이면 말풍선 화면으로 바꾼 뒤 보여준다
+        if (count == 1) show("급정거", "급정거 조심해! 비상등 켜")
+        else show("급정거", "또 급정거네! 룸미러로 뒤차부터 확인해")
+    }
+
+    private fun stopSpeedProbe() {
+        try { carProps?.unregisterCallback(speedCallback) } catch (_: Throwable) {}
+        try { car?.disconnect() } catch (_: Throwable) {}
+        carProps = null; car = null
     }
 
     /** 이미지의 위·아래·좌우 가장자리를 투명하게 흐려서 배경에 자연스럽게 섞는다. */
@@ -289,6 +383,13 @@ class DriveActivity : FadeActivity() {
         private const val TAG = "DriveActivity"
         private const val VOICE = "EUNWOO"
         const val EXTRA_OPEN_NAVI = "open_navi"
+        private const val REQ_SPEED = 7101
+        /** 급정거 기준: 1초 동안 이만큼(km/h) 이상 줄면 급정거. */
+        private const val HARD_BRAKE_KMH_PER_S = 14f
+        /** 감속을 시작한 속도가 이보다 낮으면 제외(저속 정지는 정상 동작). */
+        private const val MIN_SPEED_KMH = 20f
+        private const val WINDOW_MS = 1000L
+        private const val COOLDOWN_MS = 8000L
         private const val NAVI_PKG = "ai.umos.maps.android.navigation.app"
     }
 }

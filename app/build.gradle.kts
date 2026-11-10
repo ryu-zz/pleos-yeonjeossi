@@ -26,6 +26,8 @@ android {
             }
         }
     }
+    // [ajh 시험] 안드로이드 표준 차량 API(CAR_SPEED)로 속도 읽기 확인용
+    useLibrary("android.car")
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11

@@ -89,7 +89,7 @@ class HomeActivity : FadeActivity() {
         val cardH = (h * 0.70f).toInt()
         items.forEachIndexed { i, it ->
             val c = buildCard(it, cardW, cardH)
-            c.setOnClickListener { _ -> if (i == selected) { if (it.title == "일반 주행") showBanner("서비스 구현 중...") else if (it.title == "퀘스트") goTo(QuestTypesActivity::class.java) else goTo(RecordsActivity::class.java) } else select(i) }
+            c.setOnClickListener { _ -> if (i == selected) { if (it.title == "일반 주행") goTo(DriveActivity::class.java) /* [ajh 시험] 원래: showBanner("서비스 구현 중...") */ else if (it.title == "퀘스트") goTo(QuestTypesActivity::class.java) else goTo(RecordsActivity::class.java) } else select(i) }
             root.addView(c, FrameLayout.LayoutParams(cardW, cardH, Gravity.CENTER).apply { topMargin = dp(8f) })
             cards.add(c)
         }

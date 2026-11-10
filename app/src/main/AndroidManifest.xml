@@ -18,6 +18,8 @@
     <uses-permission android:name="pleos.car.permission.FUSED_LOCATION" /> <!-- 위치 (dangerous: 실행 중 허용 필요) -->
     <uses-permission android:name="pleos.car.permission.STT_SERVICE" />    <!-- 음성 인식 -->
     <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />    <!-- 음성 안내 -->
+    <!-- [ajh 시험] 안드로이드 표준 차량 속도 -->
+    <uses-permission android:name="android.car.permission.CAR_SPEED" />
 
     <!-- 차량(Automotive) 앱 선언 -->
     <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
