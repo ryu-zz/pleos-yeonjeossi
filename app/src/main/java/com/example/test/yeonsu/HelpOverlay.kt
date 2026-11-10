@@ -68,19 +68,19 @@ class HelpOverlay(
                 }
                 HelpPlace.LEFT -> {       // 카드 왼쪽에 글자, 오른쪽의 카드를 가리킨다
                     bx = t.rect.left - gap - len - pad - textW; by = cy - bh / 2f
-                    arrows.add(Arrow(t.rect.left - gap - len, cy, t.rect.left - gap, cy, 0f, 0f))
+                    if (t.arrow) arrows.add(Arrow(t.rect.left - gap - len, cy, t.rect.left - gap, cy, 0f, 0f))
                 }
                 HelpPlace.RIGHT -> {      // 카드 오른쪽에 글자, 왼쪽의 카드를 가리킨다
                     bx = t.rect.right + gap + len + pad; by = cy - bh / 2f
-                    arrows.add(Arrow(t.rect.right + gap + len, cy, t.rect.right + gap, cy, 0f, 0f))
+                    if (t.arrow) arrows.add(Arrow(t.rect.right + gap + len, cy, t.rect.right + gap, cy, 0f, 0f))
                 }
                 HelpPlace.BELOW -> {      // 카드 아래쪽에 글자, 위의 카드를 가리킨다
                     bx = cx - textW / 2f; by = t.rect.bottom + gap + len + pad
-                    arrows.add(Arrow(cx, t.rect.bottom + gap + len, cx, t.rect.bottom + gap, 0f, 0f))
+                    if (t.arrow) arrows.add(Arrow(cx, t.rect.bottom + gap + len, cx, t.rect.bottom + gap, 0f, 0f))
                 }
                 HelpPlace.ABOVE -> {      // 카드 위쪽에 글자, 아래의 카드를 가리킨다
                     bx = cx - textW / 2f; by = t.rect.top - gap - len - pad - bh
-                    arrows.add(Arrow(cx, t.rect.top - gap - len, cx, t.rect.top - gap, 0f, 0f))
+                    if (t.arrow) arrows.add(Arrow(cx, t.rect.top - gap - len, cx, t.rect.top - gap, 0f, 0f))
                 }
             }
             addView(box, LayoutParams(textW, -2, Gravity.TOP or Gravity.START).apply {

@@ -1,100 +1,76 @@
 package com.example.test.yeonsu
-
-import android.content.Intent
 import android.graphics.Color
-import android.graphics.Typeface
+import android.graphics.RectF
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.util.TypedValue
-import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
 import com.example.test.R
-
-/** 연저씨 · 시작 화면 (와이어프레임: 캐릭터 왼쪽, 문구 오른쪽, 하단 "시작하기") */
+/**
+ * 연저씨 · 시작 화면.
+ * 디자인 시안(UI image/현대 운전 연수 시작하기 이미지.png)을 그대로 화면에 띄우고,
+ * 그림 속 "시작하기" 버튼 위치에 투명한 터치 영역을 얹는다.
+ */
 class StartActivity : FadeActivity() {
-
-    private var k = 1f
-    private fun dp(v: Float) = (v * k).toInt()
-    private fun tv(text: String, sp: Float, color: Int, bold: Boolean = false, italic: Boolean = false) =
-        TextView(this).apply {
-            this.text = text; setTextSize(TypedValue.COMPLEX_UNIT_PX, sp * k); setTextColor(color)
-            typeface = Typeface.create("sans-serif", if (bold) Typeface.BOLD else Typeface.NORMAL)
-            if (italic) paint.textSkewX = -0.18f
-            includeFontPadding = false
-        }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val root = FrameLayout(this).apply { background = skyBackground() }
-        setContentView(root)
-        root.post { build(root, root.width, root.height) }
-    }
-
-    private fun build(root: FrameLayout, w: Int, h: Int) {
-        k = w / 1672f * 1.6f
-
-        // 캐릭터: 왼쪽 아래
-        root.addView(ImageView(this).apply {
-            setImageResource(R.drawable.yeonsu_start)
-            scaleType = ImageView.ScaleType.FIT_START
-            adjustViewBounds = true
-        }, FrameLayout.LayoutParams(0, -2, Gravity.BOTTOM or Gravity.START).also { lp ->
-            lp.width = minOf(h * 0.95f, w * 0.52f).toInt()
-            lp.leftMargin = -dp(40f)
-            lp.bottomMargin = -dp(10f)
-        })
-
-        // 오른쪽 위: HYUNDAI | 연저씨
-        val brand = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        brand.addView(ImageView(this).apply { setImageResource(R.drawable.hyundai_logo) }, LinearLayout.LayoutParams(dp(130f), dp(24f)))
-        brand.addView(View(this).apply { setBackgroundColor(Color.parseColor("#33000000")) },
-            LinearLayout.LayoutParams(dp(1.5f), dp(28f)).apply { setMargins(dp(14f), 0, dp(14f), 0) })
-        brand.addView(ImageView(this).apply { setImageResource(R.drawable.ic_y_wheel) }, LinearLayout.LayoutParams(dp(34f), dp(34f)))
-        brand.addView(tv("연저씨", 26f, Color.parseColor("#0F1B3D"), bold = true).apply { setPadding(dp(8f), 0, 0, 0) })
-        root.addView(brand, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END).apply { topMargin = dp(28f); rightMargin = dp(40f) })
-
-        // 오른쪽: 문구 + 버튼
-        val right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
-        right.addView(tv("자네, 오늘도", 50f, Color.parseColor("#0F1B3D"), bold = true, italic = true))
-        right.addView(tv("나와 함께하겠나?", 50f, Color.parseColor("#1030E0"), bold = true, italic = true).apply { setPadding(0, dp(6f), 0, 0) })
-        right.addView(tv("더 안전하고, 더 스마트한\n운전 연수의 시작", 25f, Color.parseColor("#33415C")).apply {
-            setLineSpacing(0f, 1.25f); setPadding(0, dp(22f), 0, 0)
-        })
-        right.addView(startButton(), LinearLayout.LayoutParams(dp(390f), dp(108f)).apply { topMargin = dp(34f) })
-        root.addView(right, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER_VERTICAL or Gravity.END).apply {
-            rightMargin = dp(105f); topMargin = dp(40f)
-        })
-    }
-
-    private fun startButton(): View {
-        val bg = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.parseColor("#12A3A8"), Color.parseColor("#0B6AA8"))).apply {
-            cornerRadius = dp(50f).toFloat()
-            setStroke(dp(2f), Color.parseColor("#88FFFFFF"))
+        val img = ImageView(this).apply {
+            setImageResource(R.drawable.yeonsu_start_screen)
+            scaleType = ImageView.ScaleType.MATRIX   // 화면을 빈틈없이 채우고 아래쪽에 맞춘다
         }
-        return LinearLayout(this).apply {
-            background = bg; gravity = Gravity.CENTER; orientation = LinearLayout.HORIZONTAL
-            elevation = dp(10f).toFloat(); isClickable = true; isFocusable = true
-            addView(tv("시작하기", 36f, Color.WHITE, bold = true))
-            addView(ImageView(context).apply { setImageResource(R.drawable.ic_y_chev_right); setColorFilter(Color.WHITE) },
-                LinearLayout.LayoutParams(dp(38f), dp(38f)).apply { leftMargin = dp(20f) })
-            setOnClickListener {
-                goTo(HomeActivity::class.java)
-            }
+        val hotspot = View(this).apply {
+            isClickable = true; isFocusable = true
+            contentDescription = "시작하기"
+            setOnClickListener { goTo(HomeActivity::class.java) }
+            // 누르는 동안 버튼 위에 살짝 어두운 표시
+            background = GradientDrawable().apply { setColor(Color.TRANSPARENT) }
             setOnTouchListener { v, e ->
+                val bg = v.background as GradientDrawable
                 when (e.actionMasked) {
-                    android.view.MotionEvent.ACTION_DOWN -> v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(70).start()
-                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> v.animate().scaleX(1f).scaleY(1f).setDuration(110).start()
+                    MotionEvent.ACTION_DOWN -> bg.setColor(Color.parseColor("#22000000"))
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> bg.setColor(Color.TRANSPARENT)
                 }
                 false
             }
         }
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(Color.parseColor("#F3F6FD"))
+            addView(img, FrameLayout.LayoutParams(-1, -1))
+            addView(hotspot, FrameLayout.LayoutParams(0, 0))
+        }
+        setContentView(root)
+        // 이미지가 실제로 그려진 위치를 구해 버튼 영역을 맞춘다
+        img.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            val d = img.drawable ?: return@addOnLayoutChangeListener
+            if (img.width == 0 || img.height == 0) return@addOnLayoutChangeListener
+            // 화면을 꽉 채우는 배율(남는 부분은 잘림). 가로는 가운데, 세로는 아래쪽 기준
+            // → 위쪽은 하늘 배경만 잘리고 캐릭터·문구·버튼은 그대로 보인다
+            val iw = d.intrinsicWidth.toFloat(); val ih = d.intrinsicHeight.toFloat()
+            val s = maxOf(img.width / iw, img.height / ih)
+            img.imageMatrix = android.graphics.Matrix().apply {
+                setScale(s, s); postTranslate((img.width - iw * s) / 2f, img.height - ih * s)
+            }
+            val r = RectF(BTN)
+            // BTN은 원본(1152x960) 픽셀 기준 → 드로어블 크기 기준으로 환산 후 화면 좌표로 변환
+            val sx = d.intrinsicWidth / SRC_W; val sy = d.intrinsicHeight / SRC_H
+            r.set(r.left * sx, r.top * sy, r.right * sx, r.bottom * sy)
+            img.imageMatrix.mapRect(r)
+            val lp = hotspot.layoutParams as FrameLayout.LayoutParams
+            val nl = r.left.toInt(); val nt = r.top.toInt(); val nw = r.width().toInt(); val nh = r.height().toInt()
+            if (lp.leftMargin != nl || lp.topMargin != nt || lp.width != nw || lp.height != nh) {
+                lp.leftMargin = nl; lp.topMargin = nt; lp.width = nw; lp.height = nh
+                (hotspot.background as GradientDrawable).cornerRadius = nh / 2f
+                hotspot.post { hotspot.layoutParams = lp }
+            }
+        }
     }
-
     companion object {
+        private const val SRC_W = 1152f
+        private const val SRC_H = 960f
+        /** 그림 속 "시작하기" 버튼 위치 (원본 픽셀) */
+        private val BTN = RectF(686f, 707f, 1041f, 807f)
         fun skyBackground() = GradientDrawable(GradientDrawable.Orientation.TL_BR,
             intArrayOf(Color.parseColor("#EEF2FF"), Color.parseColor("#D6E2FD"), Color.parseColor("#C2D6FA")))
     }
