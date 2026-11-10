@@ -54,9 +54,11 @@ class DailyFlowActivity : ScreenActivity() {
     private var guideText: android.widget.TextView? = null
     private var guideIdx = 0
     private val guideHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val guideMsgs: List<String> by lazy {
-        DriveCoach.all.filter { (it.category == "방향지시등" || it.category == "감속 준비") && it.trigger != "운전 종료 후" }.map { it.text }
-    }
+    /**
+     * 길 안내 중 말풍선 문구. 회전·감속·제동 같은 주행 지시는 실제 경로(내비 안내 지점·거리)와 연결돼 있지 않아서 넣지 않는다.
+     * 실제 회전·거리 안내는 내비 앱이 직접 화면과 음성으로 한다.
+     */
+    private val guideMsgs: List<String> = listOf("길 안내는 내비를 따라가면 돼! 도착하면 알려줄게")
     private val guideTick = object : Runnable {
         override fun run() {
             if (QuestFlow.stage != QuestFlow.WAIT || QuestFlow.destName == null) return
@@ -68,7 +70,8 @@ class DailyFlowActivity : ScreenActivity() {
     /** 느낌표 다음에서 줄을 바꾼다(화면 표시용). */
     private fun br(t: String) = t.replace("! ", "!\n")
     private fun speak(t: String) { if (ttsReady) try { tts?.speak(t, true) } catch (_: Throwable) {} }
-    private fun startGuide() { guideHandler.removeCallbacks(guideTick); guideHandler.postDelayed(guideTick, 1500) }
+    /** 고정 주행 지시를 정해진 순서로 반복 재생하던 기능은 끈다(실제 경로와 무관한 지시가 나올 수 있어서). */
+    private fun startGuide() { guideHandler.removeCallbacks(guideTick) }
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
         try {

@@ -4,6 +4,13 @@ package com.example.test.yeonsu
 data class Coach(val category: String, val trigger: String, val text: String)
 
 object DriveCoach {
+    /**
+     * 실제 경로(회전 지점·거리·합류 지점)를 알아야 맞는 안내인지. 지금은 내비 경로 정보와 연결돼 있지 않아서
+     * 이런 문구는 내보내지 않는다(실제와 무관한 회전·제동 지시가 나오지 않게).
+     */
+    fun needsRoute(c: Coach): Boolean = c.category == "방향지시등" || c.category == "감속 준비" || c.category == "합류·차로"
+    /** 경로 정보 없이 내보내도 되는 문구. */
+    val routeFree: List<Coach> get() = all.filterNot(::needsRoute)
     val all: List<Coach> = listOf(
         // a. 방향지시등 코치
         Coach("방향지시등", "좌회전 500m 전", "500m 앞 좌회전이다! 깜빡이 준비해"),

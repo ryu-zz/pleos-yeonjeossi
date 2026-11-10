@@ -1,6 +1,7 @@
 package com.example.test.yeonsu
 
 import android.content.Context
+import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -28,7 +29,7 @@ object QuestData {
             Tutorial("오른쪽 방향지시등 켰다가 끄기", "오른쪽 방향지시등을 켰다가 꺼보세요.", "좋아요. 오른쪽 방향지시등을 켰다가 껐어요.", "확인 가능", listOf("레버를 위로 올려 오른쪽 방향지시등을 켜보세요", "레버를 원래 위치로 돌려 꺼보세요")),
         ),
         listOf(
-            Tutorial("와이퍼 한 번", "와이퍼를 한 번 작동해보세요.", "좋아요. 와이퍼가 한 번 작동했어요.", "확인 가능", listOf("레버를 살짝 올려 와이퍼를 켜보세요", "레버를 내려 와이퍼를 꺼보세요")),
+            Tutorial("와이퍼 켰다가 끄기", "와이퍼를 켰다가 꺼보세요.", "좋아요. 와이퍼를 켰다가 껐어요.", "확인 가능", listOf("레버를 올려 와이퍼를 켜보세요", "레버를 내려 와이퍼를 꺼보세요")),
             Tutorial("자동 와이퍼 켰다가 끄기", "자동 와이퍼를 켰다가 꺼보세요.", "좋아요. 자동 와이퍼를 켰다가 껐어요.", "확인 가능", listOf("레버를 AUTO 위치에 놓아보세요", "레버를 OFF 위치로 돌려 꺼보세요")),
             Tutorial("저속 와이퍼 켰다가 끄기", "저속 와이퍼를 켰다가 꺼보세요.", "좋아요. 저속 와이퍼를 켰다가 껐어요.", "확인 가능", listOf("레버를 LOW 위치에 놓아보세요", "레버를 OFF 위치로 돌려 꺼보세요")),
             Tutorial("고속 와이퍼 켰다가 끄기", "고속 와이퍼를 켰다가 꺼보세요.", "좋아요. 고속 와이퍼를 켰다가 껐어요.", "확인 가능", listOf("레버를 HIGH 위치에 놓아보세요", "레버를 OFF 위치로 돌려 꺼보세요")),
@@ -135,7 +136,7 @@ object QuestData {
         "브레이크 밟았다가 떼기" to "두 페달 중 넓은 쪽(왼쪽)이 브레이크, 오른발로 밟아요!",
         "왼쪽 방향지시등 켰다가 끄기" to "핸들을 돌리기 전에 먼저! 레버를 아래로 내리면 왼쪽이에요.",
         "오른쪽 방향지시등 켰다가 끄기" to "핸들을 돌리기 전에 먼저! 레버를 위로 올리면 오른쪽이에요.",
-        "와이퍼 한 번" to "레버를 살짝 올렸다 놓으면 딱 한 번만 쓱! 가볍게 닦을 때 좋아요.",
+        "와이퍼 켰다가 끄기" to "비가 그치면 바로 OFF로! 마른 유리에서 돌리면 유리가 긁혀요.",
         "자동 와이퍼 켰다가 끄기" to "비 감지 센서가 알아서 속도를 맞춰줘요. 빗길에 가장 편해요!",
         "저속 와이퍼 켰다가 끄기" to "가랑비나 이슬비처럼 약한 비일 때 쓰는 단계!",
         "고속 와이퍼 켰다가 끄기" to "앞이 안 보일 만큼 센 비일 때만! 시야가 트이면 바로 낮추기!",
@@ -225,28 +226,42 @@ object QuestSession {
  * 퀘스트 진행·완료 기록 저장(SharedPreferences "yeonsu_quest").
  * 지금은 화면 확인용 미리보기 기록이다. 차량 SDK 관찰값으로 판정한 기록이 아니다.
  */
-class QuestStore(context: Context) {
-    class State(val status: String, val step: Int)
+class QuestStore(private val prefs: SharedPreferences) {
+    constructor(context: Context) : this(context.getSharedPreferences("yeonsu_quest", Context.MODE_PRIVATE))
+    /**
+     * status: 저장된 상태(new/doing/done). 완료한 퀘스트를 다시 해도 done 으로 남는다.
+     * running: 지금 수행 중인지(처음 수행 doing, 또는 완료한 퀘스트의 재수행). step 은 수행 중인 단계.
+     */
+    class State(val status: String, val step: Int, val running: Boolean = status == "doing")
     /** verified=true: 차량 신호로 확인된 완료. false(또는 이전 기록): 버튼으로 완료한 기록. */
     class Record(val id: String, val name: String, val at: Long, val verified: Boolean = false)
 
-    private val prefs = context.getSharedPreferences("yeonsu_quest", Context.MODE_PRIVATE)
-
+    // 키 규칙: p:<id> = 저장된 진행/완료 상태, r:<id> = 완료한 퀘스트를 다시 하는 중인 단계(임시), records = 완료 기록.
+    // 재수행은 p:<id>(done)를 건드리지 않고 r:<id> 로만 표시하므로, 도중에 중단해도 완료 상태·기록·뱃지가 그대로 남는다.
     fun state(q: Quest): State {
         val raw = prefs.getString("p:" + q.id, null) ?: return State("new", 0)
         val p = raw.split("|")
-        return State(p.getOrNull(0) ?: "new", p.getOrNull(1)?.toIntOrNull() ?: 0)
+        val status = p.getOrNull(0) ?: "new"
+        val rerun = prefs.getString("r:" + q.id, null)
+        if (status == "done" && rerun != null) return State("done", rerun.toIntOrNull() ?: 0, running = true)
+        return State(status, p.getOrNull(1)?.toIntOrNull() ?: 0)
     }
-
     fun start(q: Quest) {
-        if (state(q).status != "doing") prefs.edit().putString("p:" + q.id, "doing|0").apply()
+        val s = state(q)
+        if (s.running) return
+        if (s.status == "done") prefs.edit().putString("r:" + q.id, "0").apply()   // 재수행: 완료 상태는 그대로
+        else prefs.edit().putString("p:" + q.id, "doing|0").apply()
     }
-
-    fun stop(q: Quest) { prefs.edit().remove("p:" + q.id).apply() }
+    /** 지금 수행만 취소한다. 처음 수행이면 시작 전으로, 재수행이면 재수행 표시만 지운다(완료·기록·뱃지 유지). */
+    fun stop(q: Quest) {
+        val e = prefs.edit().remove("r:" + q.id)
+        if (state(q).status == "doing") e.remove("p:" + q.id)
+        e.apply()
+    }
 
     /** 단계 진행과 상관없이 완료 처리하고 기록을 남긴다. */
     fun complete(q: Quest, verified: Boolean = false) {
-        prefs.edit().putString("p:" + q.id, "done|" + q.steps.size).apply()
+        prefs.edit().putString("p:" + q.id, "done|" + q.steps.size).remove("r:" + q.id).apply()
         val arr = JSONArray(prefs.getString("records", "[]"))
         arr.put(JSONObject().put("id", q.id).put("name", q.name).put("at", System.currentTimeMillis()).put("verified", verified))
         prefs.edit().putString("records", arr.toString()).apply()
@@ -255,17 +270,18 @@ class QuestStore(context: Context) {
     /** 다음 단계로 넘긴다. 마지막 단계면 완료 기록을 남기고 true. */
     fun advance(q: Quest, verified: Boolean = false): Boolean {
         val s = state(q)
-        if (s.status != "doing") return false
+        if (!s.running) return false   // 수행 중이 아니면(중단·완료 후 늦은 응답 등) 아무것도 남기지 않는다
         val next = s.step + 1
         if (next >= q.steps.size) {
-            prefs.edit().putString("p:" + q.id, "done|$next").apply()
+            prefs.edit().putString("p:" + q.id, "done|$next").remove("r:" + q.id).apply()
             val arr = JSONArray(prefs.getString("records", "[]"))
             arr.put(JSONObject().put("id", q.id).put("name", q.name).put("at", System.currentTimeMillis()).put("verified", verified))
             prefs.edit().putString("records", arr.toString()).apply()
             checkBadge(q)
             return true
         }
-        prefs.edit().putString("p:" + q.id, "doing|$next").apply()
+        if (s.status == "done") prefs.edit().putString("r:" + q.id, next.toString()).apply()
+        else prefs.edit().putString("p:" + q.id, "doing|$next").apply()
         return false
     }
 
