@@ -43,6 +43,7 @@ dependencies {
     // Pleos SDK (저장소는 settings.gradle.kts 에 등록됨)
     implementation("ai.pleos.playground:Vehicle:2.3.2")
     // Playground에서 "준비 중" 표시지만 라이브러리는 배포됨. 동작 여부 시험용
+    implementation("ai.pleos.playground:NaviHelper:3.0.5")
     implementation("ai.pleos.playground:FusedLocation:1.1.3")
     implementation("ai.pleos.playground:SpeechToText:3.3.1")
     implementation("ai.pleos.playground:TextToSpeech:3.3.1")

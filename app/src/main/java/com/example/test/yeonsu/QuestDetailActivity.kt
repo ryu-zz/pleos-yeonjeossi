@@ -27,6 +27,8 @@ class QuestDetailActivity : ScreenActivity() {
     private var lastValue: Any? = null
     private var connected = false
     private var finished = false
+    private var events: QuestEvents? = null
+    private var readyText = "차량 연결됨"
     private val poll = android.os.Handler(android.os.Looper.getMainLooper())
     private val pollTick = object : Runnable {
         override fun run() {
@@ -52,6 +54,22 @@ class QuestDetailActivity : ScreenActivity() {
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
         if (QuestSession.type != "vehicle") return
+        QuestEvents.find(QuestSession.selected().name)?.let { e ->
+            events = e
+            try {
+                e.begin(this, { txt -> runOnUiThread { readyText = txt; connected = true; refresh() } }) { why ->
+                    runOnUiThread {
+                        val q = QuestSession.selected()
+                        if (finished || store.state(q).status != "doing") return@runOnUiThread
+                        android.util.Log.d("YeonsuSignal", "${q.name}: $why 완료")
+                        finished = true
+                        while (store.state(q).status == "doing" && !store.advance(q)) { }
+                        goTo(QuestDoneActivity::class.java)
+                    }
+                }
+            } catch (t: Throwable) { android.util.Log.e("YeonsuSignal", "내비·음성 연결 실패 $t") }
+            return
+        }
         val d = QuestSignals.find(QuestSession.selected().name) ?: return
         try {
             detector = d
@@ -62,6 +80,7 @@ class QuestDetailActivity : ScreenActivity() {
     override fun onDestroy() {
         poll.removeCallbacks(pollTick)
         try { vehicle?.release() } catch (_: Throwable) {}
+        events?.release()
         super.onDestroy()
     }
 
@@ -203,8 +222,8 @@ class QuestDetailActivity : ScreenActivity() {
         col.addView(actions, LinearLayout.LayoutParams(-1, -2).apply { topMargin = px(36f) })
 
         // 차량 신호로 자동 완료되는 퀘스트는 안내 한 줄 (진행 중일 때만)
-        if (s.status == "doing") detector?.let { d ->
-            col.addView(t(if (connected) "차량 연결됨 · ${d.hint}" else "차량 연결 중…", 26f, Color.parseColor("#2D7653"), true).apply {
+        if (s.status == "doing") (detector?.hint ?: events?.hint)?.let { hint ->
+            col.addView(t(if (connected) "$readyText · $hint" else "연결 중…", 26f, Color.parseColor("#2D7653"), true).apply {
                 setPadding(0, px(26f), 0, 0)
             })
         }

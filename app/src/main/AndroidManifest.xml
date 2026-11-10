@@ -13,6 +13,11 @@
     <uses-permission android:name="pleos.car.permission.PRIVATE_CAR_SAFETY" />  <!-- 경고등 목록 읽기(getTelltalesInfo) -->
 
     <!-- 준비 중 SDK (시험) -->
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />  <!-- 내비 -->
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />  <!-- 내비 -->
+    <uses-permission android:name="pleos.car.permission.NAVI_CUSTOM_ROUTE" />  <!-- 내비 -->
+    <uses-permission android:name="pleos.car.permission.NAVI_CUSTOM_ETC" />  <!-- 내비 -->
+    <uses-permission android:name="pleos.car.permission.NAVI_CUSTOM_MAP" />  <!-- 내비 -->
     <uses-permission android:name="pleos.car.permission.FUSED_LOCATION" /> <!-- 위치 (dangerous: 실행 중 허용 필요) -->
     <uses-permission android:name="pleos.car.permission.STT_SERVICE" />    <!-- 음성 인식 -->
     <uses-permission android:name="pleos.car.permission.TTS_SERVICE" />    <!-- 음성 안내 -->

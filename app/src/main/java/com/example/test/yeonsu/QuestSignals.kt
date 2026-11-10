@@ -90,6 +90,7 @@ object QuestSignals {
         "충전 상태 확인" to Detector("배터리 충전율 값이 바뀌면 자동으로 완료돼요", soc) { p, n -> p != null && n != null && num(p) != num(n) },
         "타이어 경고등 연습" to Detector("타이어 경고등(TPMS)이 켜지면 자동으로 완료돼요$RETRY", tpms, becomes { str(it) != "OFF" }),
         "에어백 전개 연습" to Detector("에어백 경고등이 켜지면 자동으로 완료돼요$RETRY", airbag, becomes { str(it) != "OFF" }),
+        "전자식 주차 브레이크" to Detector("주차 브레이크 표시등이 켜지면 자동으로 완료돼요$RETRY", telltale(ai.pleos.playground.vehicle.constant.telltale.TelltaleType.ELECTRONIC_PARKING_BRAKE), becomes { str(it) != "OFF" }),
         "충전구 열기" to Detector("충전구를 열면 자동으로 완료돼요$RETRY", chargePort, becomes { it == true }),
     )
 
