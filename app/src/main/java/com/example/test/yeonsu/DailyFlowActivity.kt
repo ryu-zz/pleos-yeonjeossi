@@ -26,6 +26,7 @@ import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
  * 도착 신호가 오지 않아도 진행할 수 있게 "도착했다고 치기" 버튼을 둔다(시연용).
  */
 class DailyFlowActivity : ScreenActivity() {
+    override fun screenBackground(): android.graphics.drawable.Drawable = questBackground()
     override val parentScreen: Class<out Activity> = QuestListActivity::class.java
     private val store by lazy { QuestStore(this) }
     private var navi: NaviHelper? = null

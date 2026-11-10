@@ -61,7 +61,7 @@ class HomeActivity : FadeActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val root = FrameLayout(this).apply { background = StartActivity.skyBackground() }
+        val root = FrameLayout(this).apply { background = androidx.core.content.ContextCompat.getDrawable(this@HomeActivity, R.drawable.yeonsu_list_bg) }
         rootLayout = root
         setContentView(root)
         root.post { build(root, root.width, root.height) }
@@ -72,18 +72,14 @@ class HomeActivity : FadeActivity() {
         k = w / 1672f * 1.6f
         val navy = Color.parseColor("#0F1B3D")
 
-        // 헤더: 로고 / 홈·설정·도움말
+        // 헤더: 로고 / 도움말
         val logo = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         logo.addView(ImageView(this).apply { setImageResource(R.drawable.ic_y_wheel) }, LinearLayout.LayoutParams(dp(36f), dp(36f)))
         logo.addView(tv("연저씨", 30f, Color.parseColor("#14204A"), true).apply { setPadding(dp(12f), 0, 0, 0) })
         root.addView(logo, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START).apply { topMargin = dp(24f); leftMargin = dp(36f) })
 
-        val tools = LinearLayout(this)
-        listOf(R.drawable.ic_y_settings to "설정", R.drawable.ic_y_help to "도움말").forEach { (ic, name) ->
-            tools.addView(roundButton(ic, 56f) { if (name == "도움말") showHelp() else soon(name) }, LinearLayout.LayoutParams(dp(56f), dp(56f)).apply { leftMargin = dp(12f) })
-        }
-        root.addView(tools, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.END).apply { topMargin = dp(20f); rightMargin = dp(32f) })
-
+        // 도움말만 남긴다. 위치·크기는 다른 화면과 같다(HeaderBar).
+        root.addView(HeaderBar.iconButton(this, k, R.drawable.ic_y_help) { showHelp() }, HeaderBar.helpParams(k))
         // 카드
         val cardW = (w * 0.40f).toInt()
         val cardH = (h * 0.70f).toInt()
@@ -142,18 +138,16 @@ class HomeActivity : FadeActivity() {
             background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(base, base and 0x00FFFFFF))
         }, FrameLayout.LayoutParams(-1, dp(70f), Gravity.TOP))
         card.addView(photoBox, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
-
         val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.TOP }
         head.addView(ImageView(this).apply { setImageResource(item.icon) }, LinearLayout.LayoutParams(dp(40f), dp(40f)).apply { topMargin = dp(2f) })
         val tx = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12f), 0, 0, 0) }
         tx.addView(tv(item.title, 38f, Color.parseColor("#0F1B3D"), true))
-        tx.addView(tv(item.desc, 17f, Color.parseColor("#3A4766"), false).apply { setPadding(0, dp(8f), 0, 0); setLineSpacing(0f, 1.2f) })
+        tx.addView(tv(item.desc, 20f, Color.parseColor("#3A4766"), false).apply { setPadding(0, dp(8f), 0, 0); setLineSpacing(0f, 1.2f) })
         head.addView(tx, LinearLayout.LayoutParams(0, -2, 1f))
         head.addView(ImageView(this).apply { setImageResource(R.drawable.ic_y_chev_right) }, LinearLayout.LayoutParams(dp(30f), dp(30f)).apply { topMargin = dp(6f) })
         card.addView(head, FrameLayout.LayoutParams(-1, -2, Gravity.TOP).apply { setMargins(dp(20f), dp(20f), dp(14f), 0) })
         return card
     }
-
     private fun select(i: Int) {
         if (i !in items.indices || i == selected) return
         selected = i

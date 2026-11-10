@@ -17,6 +17,7 @@ import android.widget.Toast
  * 마지막 컷에서 "끝"을 누르면, 처음 보는 중이면 "안내할까요?"로, 다시 보는 중이면 퀘스트 완료로 넘어간다.
  */
 class ScenarioActivity : ScreenActivity() {
+    override fun screenBackground(): android.graphics.drawable.Drawable = questBackground()
     override val parentScreen: Class<out Activity> = QuestListActivity::class.java
     private val store by lazy { QuestStore(this) }
     private var cut = 0

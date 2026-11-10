@@ -15,6 +15,7 @@ import ai.pleos.playground.vehicle.Vehicle
  * 아래쪽 "미리보기 조작"은 화면 확인용이다. 실제 차량 조작을 판정하지 않으며, 이후 SDK 관찰값으로 대체한다.
  */
 class QuestDetailActivity : ScreenActivity() {
+    override fun screenBackground(): android.graphics.drawable.Drawable = questBackground()
     override val parentScreen: Class<out Activity> = QuestListActivity::class.java
     private val store by lazy { QuestStore(this) }
     private var success = false
@@ -42,8 +43,8 @@ class QuestDetailActivity : ScreenActivity() {
         val st = store.state(q)
         if (prev != null && st.status == "doing" && d.done(st.step, prev, now)) {
             android.util.Log.d("YeonsuSignal", "${q.name}: ${st.step + 1}단계 $prev -> $now")
-            if (store.advance(q, verified = true)) success = true
-            refresh()
+            if (store.advance(q, verified = true)) { success = true; goTo(QuestDoneActivity::class.java) }
+            else refresh()
         }
     }
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
@@ -112,11 +113,13 @@ class QuestDetailActivity : ScreenActivity() {
                 if (s.status == "doing") Toast.makeText(this, "이미 진행 중이에요. ${q.desc}", Toast.LENGTH_SHORT).show()
                 else { store.start(q); refresh() }
             }
-            actions.addView(primaryBtn)
-            actions.addView(button("중단", primary = false, enabled = s.status == "doing") {
+            actions.addView(primaryBtn, LinearLayout.LayoutParams(0, -2, 1f))
+            val stopBtn = button("중단", primary = false, enabled = s.status == "doing") {
                 store.stop(q); refresh()
                 Toast.makeText(this, "퀘스트를 중단했어요. 완료 기록은 추가하지 않았어요.", Toast.LENGTH_SHORT).show()
-            }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(14f) })
+            }
+            actions.addView(stopBtn, LinearLayout.LayoutParams(0, -2, 1f).apply { leftMargin = dp(14f) })
+            // 두 버튼이 위쪽 박스들과 같은 가로 폭을 반반씩 나눠 쓴다
         }
         panel.addView(actions)
 
@@ -126,7 +129,7 @@ class QuestDetailActivity : ScreenActivity() {
                 panel.addView(tv(q.steps[s.step.coerceAtMost(q.steps.size - 1)] + "　→", 22f, ScreenActivity.NAVY).apply {
                     background = rounded(Color.parseColor("#DFEBFA"), 16f); setPadding(dp(20f), dp(14f), dp(20f), dp(14f))
                     isClickable = true; isFocusable = true
-                    setOnClickListener { if (store.advance(q)) success = true; refresh() }
+                    setOnClickListener { if (store.advance(q)) { success = true; goTo(QuestDoneActivity::class.java) } else refresh() }
                 }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(18f) })
             }
         }

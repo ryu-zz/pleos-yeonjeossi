@@ -14,6 +14,8 @@ class QuestListActivity : ScreenActivity() {
     override val parentScreen: Class<out Activity> = QuestTypesActivity::class.java
     private val store by lazy { QuestStore(this) }
 
+    /** 모든 퀘스트 화면은 같은 그라데이션 빛 무늬 배경. */
+    override fun screenBackground(): android.graphics.drawable.Drawable = questBackground()
     /** 차량 퀘스트에서만: 전기차 모드 켜기/끄기 버튼. 켜면 왼쪽 카테고리에 "전기차"가 나온다. */
     override fun headerExtra(): View? {
         if (QuestSession.type != "vehicle") return null

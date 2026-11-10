@@ -92,6 +92,13 @@ class DriveActivity : FadeActivity() {
         // 헤더는 두 상태에서 공통
         // 헤더(연저씨 마크 / 홈·설정·도움말)는 세로 열이 아니라 창 전체 폭 기준: 마크는 맨 왼쪽, 버튼은 맨 오른쪽
         root.addView(buildHeader(), FrameLayout.LayoutParams(-1, -2, Gravity.TOP).apply { topMargin = dp(36f) })
+        // 홈·도움말은 다른 화면과 같은 크기·같은 자리(HeaderBar 기준, 화면 폭에 맞춘 단위)에 둔다. 설정은 없다.
+        val hk = HeaderBar.scale(w)
+        root.addView(HeaderBar.iconButton(this, hk, R.drawable.ic_y_help) {
+            Toast.makeText(this, "이 화면은 도움말이 아직 없어요", Toast.LENGTH_SHORT).show()
+        }, HeaderBar.helpParams(hk))
+        root.addView(HeaderBar.iconButton(this, hk, R.drawable.ic_y_home) { goTo(HomeActivity::class.java) },
+            HeaderBar.helpParams(hk).apply { rightMargin += ((HeaderBar.BTN + 12f) * hk).toInt() })
         if (driving) {
             idleLayer.visibility = View.GONE; activeLayer.visibility = View.VISIBLE; activeLayer.alpha = 1f
             bubbleChip.visibility = if (lastChip.isEmpty()) View.GONE else View.VISIBLE
@@ -104,11 +111,6 @@ class DriveActivity : FadeActivity() {
         row.addView(ImageView(this).apply { setImageResource(R.drawable.ic_y_wheel) }, LinearLayout.LayoutParams(dp(78f), dp(78f)))
         row.addView(tv("연저씨", 54f, Color.parseColor("#0F1B3D"), true).apply { setPadding(dp(14f), 0, 0, 0) },
             LinearLayout.LayoutParams(0, -2, 1f))
-        listOf(R.drawable.ic_y_home to "홈", R.drawable.ic_y_settings to "설정", R.drawable.ic_y_help to "도움말").forEach { (ic, name) ->
-            row.addView(squareButton(ic, 88f) {
-                if (name == "홈") { goTo(HomeActivity::class.java) } else Toast.makeText(this, "$name 화면은 준비 중이에요", Toast.LENGTH_SHORT).show()
-            }, LinearLayout.LayoutParams(dp(88f), dp(88f)).apply { leftMargin = dp(22f) })
-        }
         return FrameLayout(this).apply {
             setPadding(dp(46f), 0, dp(40f), 0)
             addView(row, FrameLayout.LayoutParams(-1, -2))

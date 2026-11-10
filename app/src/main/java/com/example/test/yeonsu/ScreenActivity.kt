@@ -42,7 +42,7 @@ abstract class ScreenActivity : FadeActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        root = FrameLayout(this).apply { background = StartActivity.skyBackground() }
+        root = FrameLayout(this).apply { background = screenBackground() }
         setContentView(root)
         root.addOnLayoutChangeListener { _, l, t, r, b, _, _, _, _ ->
             val w = r - l; val h = b - t
@@ -62,7 +62,7 @@ abstract class ScreenActivity : FadeActivity() {
         // 화면 가장자리에서 그림자·모서리가 잘리지 않도록 좌우를 안쪽으로 당긴다.
         val sideL = dp(12f); val sideR = dp(30f)
         root.addView(content, FrameLayout.LayoutParams(-1, -1).apply { topMargin = headerH; leftMargin = sideL; rightMargin = sideR })
-        root.addView(buildHeader(headerH), FrameLayout.LayoutParams(-1, headerH, Gravity.TOP).apply { leftMargin = sideL; rightMargin = sideR })
+        root.addView(buildHeader(headerH), FrameLayout.LayoutParams(-1, headerH, Gravity.TOP))
         build(content, bw - sideL - sideR, bh - headerH)
         unclip(root)
         QuestStore(this).takeNewBadge()?.let { (type, c) -> showBadge(type, c) }
@@ -80,29 +80,17 @@ abstract class ScreenActivity : FadeActivity() {
         v.setOnHierarchyChangeListener(unclipListener)
         for (i in 0 until v.childCount) unclip(v.getChildAt(i))
     }
+    /** 화면 배경. 기본은 하늘색 그라데이션, 화면별로 바꿀 수 있다. */
+    protected open fun screenBackground(): android.graphics.drawable.Drawable = StartActivity.skyBackground()
+    /** 퀘스트 화면 공통 배경(차량 퀘스트 목록과 같은 그라데이션 빛 무늬). */
+    protected fun questBackground(): android.graphics.drawable.Drawable =
+        androidx.core.content.ContextCompat.getDrawable(this, R.drawable.yeonsu_list_bg)!!
     /** 헤더 오른쪽 아이콘들 왼쪽에 끼워 넣을 화면별 버튼(없으면 null). */
     protected open fun headerExtra(): View? = null
-    private fun buildHeader(h: Int): View {
-        val row = LinearLayout(this).apply {
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(36f), dp(8f), dp(32f), 0)
-        }
-        row.addView(iconButton(R.drawable.ic_y_chev_left, 56f) { goTo(parentScreen) },
-            LinearLayout.LayoutParams(dp(56f), dp(56f)).apply { rightMargin = dp(14f) })
-        row.addView(ImageView(this).apply { setImageResource(R.drawable.ic_y_wheel) }, LinearLayout.LayoutParams(dp(40f), dp(40f)))
-        row.addView(tv("연저씨", 30f, NAVY, true).apply { setPadding(dp(12f), 0, 0, 0) },
-            LinearLayout.LayoutParams(0, -2, 1f))
-        headerExtra()?.let { row.addView(it, LinearLayout.LayoutParams(-2, dp(56f)).apply { leftMargin = dp(12f) }) }
-        listOf(R.drawable.ic_y_home to "홈", R.drawable.ic_y_settings to "설정", R.drawable.ic_y_help to "도움말").forEach { (ic, name) ->
-            row.addView(iconButton(ic, 56f) {
-                if (name == "홈") goTo(HomeActivity::class.java)
-                else if (name == "도움말" && helpItems() != null) showHelp()
-                else Toast.makeText(this, "$name 화면은 준비 중이에요", Toast.LENGTH_SHORT).show()
-            }, LinearLayout.LayoutParams(dp(56f), dp(56f)).apply { leftMargin = dp(12f) })
-        }
-        return row
+    private fun buildHeader(h: Int): View = HeaderBar.build(this, k, parentScreen, true, headerExtra()) {
+        if (helpItems() != null) showHelp()
+        else Toast.makeText(this, "이 화면은 도움말이 아직 없어요", Toast.LENGTH_SHORT).show()
     }
-
     // ───── 짧은 안내 문구(토스트 대신 화면 가운데에 직접 그림) ─────
     private var banner: TextView? = null
     protected fun showBanner(msg: String) {
