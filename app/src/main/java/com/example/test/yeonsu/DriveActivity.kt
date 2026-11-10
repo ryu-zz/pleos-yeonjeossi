@@ -225,7 +225,9 @@ class DriveActivity : FadeActivity() {
     }
 
     private fun nextTest() {
-        val c = DriveCoach.all[testIndex % DriveCoach.all.size]
+        // 회전·감속·합류 지시는 실제 경로와 연결돼 있지 않아서 테스트 순환에서도 뺀다
+        val list = DriveCoach.routeFree
+        val c = list[testIndex % list.size]
         testIndex++
         show(c.category, c.text)
     }
