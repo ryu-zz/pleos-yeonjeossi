@@ -216,7 +216,12 @@ object QuestFlow {
     /** 도착 판정 결과(UNCONFIRMED/UNKNOWN 이면 사용자 확인 단계, MISMATCH 면 다른 곳 도착 안내). null 이면 판정 전. */
     var arrival: DailyArrival.Result? = null
     var arrivedName: String? = null
-    fun start() { stage = INTRO; destName = null; arrival = null; arrivedName = null }
+    /** 고른 목적지의 주소(내비 목적지 정보)와 도착 이벤트의 주소. 같은 이름의 다른 지점을 구분하는 데 쓴다. */
+    var destAddr: String? = null
+    var arrivedAddr: String? = null
+    /** 이번 수행 번호. 같은 수행의 완료는 시간이 지나 다시 와도 한 번만 기록한다. */
+    var runId: String? = null
+    fun start() { stage = INTRO; destName = null; destAddr = null; arrival = null; arrivedName = null; arrivedAddr = null; runId = java.util.UUID.randomUUID().toString() }
     /** 기록에 남길 완료 방식: 내비 도착 정보로 목적지를 확인했으면 navi, 아니면 사용자 직접 확인. */
     fun completeSource(): String = if (arrival == DailyArrival.Result.MATCHED) QuestStore.SOURCE_NAVI else QuestStore.SOURCE_USER
 }
@@ -276,8 +281,13 @@ class QuestStore(private val prefs: SharedPreferences) {
     }
 
     /** 단계 진행과 상관없이 완료 처리하고 기록을 남긴다. */
-    fun complete(q: Quest, verified: Boolean = false, source: String? = null, nowMs: Long = System.currentTimeMillis()): Boolean {
+    /**
+     * runId: 한 번의 수행을 가리키는 번호. 같은 퀘스트·같은 runId 기록이 이미 있으면 시간이 지났어도 다시 기록하지 않는다
+     * (늦게 다시 온 도착 이벤트 등). 새 수행(새 runId)은 정상적으로 새 기록을 남긴다.
+     */
+    fun complete(q: Quest, verified: Boolean = false, source: String? = null, nowMs: Long = System.currentTimeMillis(), runId: String? = null): Boolean {
         val arr = JSONArray(prefs.getString("records", "[]"))
+        if (runId != null && (0 until arr.length()).any { val o = arr.getJSONObject(it); o.optString("id") == q.id && o.optString("run") == runId }) return false
         // 완료 버튼 연속 탭 등으로 같은 퀘스트가 잠깐 사이에 두 번 들어오면 두 번째는 버린다
         if (arr.length() > 0) {
             val last = arr.getJSONObject(arr.length() - 1)
@@ -286,6 +296,7 @@ class QuestStore(private val prefs: SharedPreferences) {
         prefs.edit().putString("p:" + q.id, "done|" + q.steps.size).remove("r:" + q.id).apply()
         val o = JSONObject().put("id", q.id).put("name", q.name).put("at", nowMs).put("verified", verified)
         if (source != null) o.put("source", source)
+        if (runId != null) o.put("run", runId)
         arr.put(o)
         prefs.edit().putString("records", arr.toString()).apply()
         checkBadge(q)

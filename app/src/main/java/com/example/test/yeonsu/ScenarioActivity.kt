@@ -89,7 +89,7 @@ class ScenarioActivity : ScreenActivity() {
         if (QuestFlow.stage == QuestFlow.REPLAY) {
             if (finishing) return
             finishing = true
-            store.complete(q, source = QuestFlow.completeSource())
+            store.complete(q, source = QuestFlow.completeSource(), runId = QuestFlow.runId)
             Toast.makeText(this, "퀘스트를 완료했어요. 마이페이지에 기록됐어요.", Toast.LENGTH_SHORT).show()
             goTo(QuestListActivity::class.java)
         } else {

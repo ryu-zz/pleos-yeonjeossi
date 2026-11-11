@@ -33,7 +33,7 @@ class DailyFlowActivity : ScreenActivity() {
     private var navi: NaviHelper? = null
     private val listener = object : NaviHelperEventListener {
         override fun onRouteStarted(info: RouteStartInfo) {
-            android.util.Log.d("YeonsuNavi", "onRouteStarted name=${info.name}"); runOnUiThread { if (QuestFlow.stage == QuestFlow.WAIT) { QuestFlow.destName = info.name; refresh() } }
+            android.util.Log.d("YeonsuNavi", "onRouteStarted name=${info.name}"); runOnUiThread { if (QuestFlow.stage == QuestFlow.WAIT) { if (info.name != QuestFlow.destName) QuestFlow.destAddr = null; QuestFlow.destName = info.name; refresh(); askDestination() } }
         }
         override fun onNavigationStatus(status: NavigationStatus) {
             android.util.Log.d("YeonsuNavi", "onNavigationStatus $status")
@@ -42,11 +42,11 @@ class DailyFlowActivity : ScreenActivity() {
         override fun onDestinationChanged() { android.util.Log.d("YeonsuNavi", "onDestinationChanged"); askDestination() }
         override fun onDestinationInfo(info: DestinationInfo) {
             android.util.Log.d("YeonsuNavi", "onDestinationInfo name=${info.name}")
-            runOnUiThread { if (info.name.isNotBlank() && QuestFlow.stage == QuestFlow.WAIT) { QuestFlow.destName = info.name; refresh() } }
+            runOnUiThread { if (info.name.isNotBlank() && QuestFlow.stage == QuestFlow.WAIT) { if (info.name != QuestFlow.destName) QuestFlow.destAddr = null; QuestFlow.destName = info.name; QuestFlow.destAddr = info.address.ifBlank { null }; refresh() } }
         }
         override fun onDestinationArrived(info: DestinationArrivedInfo) {
             android.util.Log.d("YeonsuNavi", "onDestinationArrived ${info.name}")
-            runOnUiThread { onArrived(info.name) }
+            runOnUiThread { onArrived(info.name, info.address) }
         }
     }
 
@@ -54,12 +54,12 @@ class DailyFlowActivity : ScreenActivity() {
      * 도착 이벤트: 경로를 시작할 때 고른 목적지와 도착한 곳을 비교한다(DailyArrival).
      * 다른 곳이면 완료 단계로 넘어가지 않는다. 이름으로 장소 종류를 확정할 수 없으면 사용자 확인 단계로 간다.
      */
-    private fun onArrived(name: String?) {
+    private fun onArrived(name: String?, address: String?) {
         if (QuestFlow.stage != QuestFlow.WAIT) return
         val flow = QuestData.flows[QuestSession.category] ?: return
-        val r = DailyArrival.judge(listOf(flow.find, flow.query), QuestFlow.destName, name)
-        android.util.Log.i("YeonsuNavi", "도착 판정 $r (고른 목적지=${QuestFlow.destName}, 도착=$name)")
-        QuestFlow.arrival = r; QuestFlow.arrivedName = name
+        val r = DailyArrival.judge(listOf(flow.find, flow.query), QuestFlow.destName, name, QuestFlow.destAddr, address)
+        android.util.Log.i("YeonsuNavi", "도착 판정 $r (고른 목적지=${QuestFlow.destName} / ${QuestFlow.destAddr}, 도착=$name / $address)")
+        QuestFlow.arrival = r; QuestFlow.arrivedName = name; QuestFlow.arrivedAddr = address
         if (r != DailyArrival.Result.MISMATCH) QuestFlow.stage = QuestFlow.ARRIVED
         refresh()
     }
@@ -150,7 +150,7 @@ class DailyFlowActivity : ScreenActivity() {
                     guideText = g; panel.addView(g)
                     startGuide()
                 }
-                if (QuestFlow.arrival == DailyArrival.Result.MISMATCH) panel.addView(tv("고른 목적지(${QuestFlow.destName})가 아닌 '${QuestFlow.arrivedName}'에 도착했어요. 퀘스트는 아직 완료되지 않았어요.", 20f, Color.parseColor("#B3261E"), true).apply { setPadding(0, dp(12f), 0, 0); setLineSpacing(0f, 1.2f) })
+                if (QuestFlow.arrival == DailyArrival.Result.MISMATCH) panel.addView(tv(if (QuestFlow.arrivedName == QuestFlow.destName) "고른 목적지와 이름은 같지만 주소가 다른 곳(${QuestFlow.arrivedAddr})에 도착했어요. 퀘스트는 아직 완료되지 않았어요." else "고른 목적지(${QuestFlow.destName})가 아닌 '${QuestFlow.arrivedName}'에 도착했어요. 퀘스트는 아직 완료되지 않았어요.", 20f, Color.parseColor("#B3261E"), true).apply { setPadding(0, dp(12f), 0, 0); setLineSpacing(0f, 1.2f) })
                 actions.addView(button("내비 열기", primary = false) { openNavi(flow) })
                 actions.addView(button("도착했어요 (직접 확인)") { manualArrive() },
                     LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(14f) })
@@ -176,7 +176,7 @@ class DailyFlowActivity : ScreenActivity() {
                 actions.addView(button("예") { QuestFlow.stage = QuestFlow.REPLAY; goTo(ScenarioActivity::class.java) })
                 actions.addView(button("아니오", primary = false) { finishQuest(q) }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(14f) })
                 if (!matched) actions.addView(button("아직 아니에요", primary = false) {
-                    QuestFlow.stage = QuestFlow.WAIT; QuestFlow.arrival = null; QuestFlow.arrivedName = null; refresh()
+                    QuestFlow.stage = QuestFlow.WAIT; QuestFlow.arrival = null; QuestFlow.arrivedName = null; QuestFlow.arrivedAddr = null; refresh()
                 }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(14f) })
                 panel.addView(actions, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(22f) })
             }
@@ -214,7 +214,7 @@ class DailyFlowActivity : ScreenActivity() {
     private fun finishQuest(q: Quest) {
         if (completing) return
         completing = true
-        store.complete(q, source = QuestFlow.completeSource())
+        store.complete(q, source = QuestFlow.completeSource(), runId = QuestFlow.runId)
         Toast.makeText(this, "퀘스트를 완료했어요. 마이페이지에 기록됐어요.", Toast.LENGTH_SHORT).show()
         goTo(QuestListActivity::class.java)
     }
