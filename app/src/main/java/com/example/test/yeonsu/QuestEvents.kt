@@ -21,55 +21,98 @@ import android.util.Log
  */
 class QuestEvents private constructor(
     val hint: String,
-    private val start: (Context, (String) -> Unit, (String) -> Unit) -> Unit,
+    private val name: String,
+    private val start: (QuestEvents, Context, Int, Callbacks) -> Unit,
 ) {
-    private var stt: SpeechToText? = null
-    private var navi: NaviHelper? = null
-    private var stopped = false
-
-    /** onReady: 연결되면 한 번, onDone(설명): 조건을 만족하면 한 번 */
-    fun begin(ctx: Context, onReady: (String) -> Unit, onDone: (String) -> Unit) = start(ctx, onReady, onDone)
-
-    fun release() {
-        stopped = true
-        try { stt?.stop(); stt?.release() } catch (_: Throwable) {}
-        try { navi?.release() } catch (_: Throwable) {}
+    /** 화면이 받는 알림. 모두 메인 스레드가 아닐 수 있으니 화면에서 runOnUiThread 로 받는다. */
+    interface Callbacks {
+        fun onReady()
+        fun onDone(why: String)
+        /** 사용자에게 보여줄 오류 안내. 이 뒤에는 새로 open 해야 다시 시작한다. */
+        fun onError(message: String)
     }
-
-    /** 음성을 계속 듣다가 ok(문장)가 참이면 완료. 한 번 듣기가 끝나면 다시 듣는다. */
-    private fun listen(ctx: Context, onReady: (String) -> Unit, onDone: (String) -> Unit, ok: (String) -> Boolean) {
-        val s = SpeechToText(ctx.applicationContext, Mode.ON_DEVICE).also { stt = it }
+    private val gate = EventGate()
+    internal var stt: SpeechToText? = null
+    internal var navi: NaviHelper? = null
+    internal var naviListener: NaviHelperEventListener? = null
+    val isOpen: Boolean get() = gate.active
+    /** 듣기·수신 시작. 이미 열려 있으면 먼저 닫고 새로 연다(이전 구간의 늦은 결과는 버린다). */
+    fun open(ctx: Context, cb: Callbacks) {
+        close("다시 열기")
+        val t = gate.open()
+        Log.i(TAG, "[$name] 수신 시작 token=$t")
+        try { start(this, ctx, t, cb) } catch (e: Throwable) {
+            Log.e(TAG, "[$name] 시작 실패 $e")
+            cb.onError("음성·내비 연결을 시작하지 못했어요. '다시 시도'를 눌러 주세요.")
+        }
+    }
+    /** 중단·완료·화면 이탈·종료 때 호출. SDK 를 해제하고 이후 도착하는 결과는 무시한다. */
+    fun close(reason: String) {
+        val wasOpen = gate.active
+        gate.close()
+        val hadStt = stt != null; val hadNavi = navi != null
+        try { stt?.stop() } catch (_: Throwable) {}
+        try { stt?.release() } catch (_: Throwable) {}
+        try { naviListener?.let { navi?.removeListener(it) } } catch (_: Throwable) {}
+        try { navi?.release() } catch (_: Throwable) {}
+        stt = null; navi = null; naviListener = null
+        if (wasOpen || hadStt || hadNavi) Log.i(TAG, "[$name] 수신 종료 reason=$reason stt해제=$hadStt navi해제=$hadNavi")
+    }
+    internal fun accept(t: Int) = gate.accept(t)
+    /** 음성을 듣다가 ok(문장)가 참이면 완료. 한 번 듣기가 끝나면 다시 듣는다. */
+    internal fun listen(ctx: Context, t: Int, cb: Callbacks, ok: (String) -> Boolean) {
+        val s = SpeechToText(ctx.applicationContext, Mode.ON_DEVICE)
+        stt = s
+        var silentRetries = 0
         s.initialize(object : OnInitializeListener {
             override fun onSuccess() {
+                if (!accept(t)) { Log.i(TAG, "[$name] 연결 완료가 늦게 도착해 무시(token=$t)"); try { s.release() } catch (_: Throwable) {}; return }
                 s.setLocale(java.util.Locale.KOREA)
                 s.addListener(object : ResultListener {
                     override fun onUpdated(text: String, isFinal: Boolean) {
+                        if (!accept(t)) return
                         if (!isFinal || text.isBlank()) return
-                        Log.d("YeonsuSignal", "음성 인식: $text")
-                        if (ok(text)) onDone("\"$text\"")
+                        silentRetries = 0
+                        Log.d(TAG, "[$name] 음성 인식: $text")
+                        if (ok(text)) cb.onDone("\"$text\"")
                     }
-                    override fun onEndedRecognition() { if (!stopped) try { s.request() } catch (_: Throwable) {} }
+                    override fun onEndedRecognition() { if (accept(t)) try { s.request() } catch (_: Throwable) {} }
                     override fun onError(errorType: ErrorType) {
-                        Log.d("YeonsuSignal", "음성 인식 오류 $errorType")
-                        if (!stopped) try { s.request() } catch (_: Throwable) {}
+                        if (!accept(t)) return
+                        Log.w(TAG, "[$name] 음성 인식 오류 $errorType")
+                        val d = EventErrors.describe(errorType.name)
+                        if (d.silentRetry && silentRetries < EventErrors.MAX_SILENT_RETRY) {
+                            silentRetries++
+                            try { s.request() } catch (_: Throwable) {}
+                        } else {
+                            val msg = if (d.silentRetry) "말씀이 들리지 않아요. '다시 시도'를 눌러 주세요." else d.message
+                            cb.onError(msg)
+                            close("오류 $errorType")
+                        }
                     }
                     override fun onUpdatedEpdData(a: Long, b: Long) {}
-                    override fun onStartedRecognition() {}
+                    override fun onStartedRecognition() { silentRetries = 0 }
                     override fun onReady() {}
                     override fun onUpdatedRms(r: Double) {}
                 })
-                onReady("음성 듣는 중")
+                Log.i(TAG, "[$name] 녹음 시작 요청 token=$t")
+                cb.onReady()
                 s.request()
             }
-            override fun onFailure(errorType: ErrorType) { Log.e("YeonsuSignal", "음성 연결 실패 $errorType") }
+            override fun onFailure(errorType: ErrorType) {
+                if (!accept(t)) return
+                Log.e(TAG, "[$name] 음성 연결 실패 $errorType")
+                cb.onError(EventErrors.describe(errorType.name).message.ifBlank { "음성 인식에 연결하지 못했어요. '다시 시도'를 눌러 주세요." })
+                close("연결 실패 $errorType")
+            }
         })
     }
-
     companion object {
+        private const val TAG = "YeonsuSignal"
         fun find(name: String): QuestEvents? = when (name) {
-            "목적지 음성 검색" -> voice("\"서울역으로 가자\"처럼 목적지를 말하면 완료돼요 (말한 문장만 확인하고, 내비 검색은 실행하지 않아요)") { isDestination(it) }
-            "주유소·충전소 검색" -> voice("\"가까운 충전소 찾아줘\"라고 말하면 완료돼요 (말한 문장만 확인하고, 내비 검색은 실행하지 않아요)") { isStationQuery(it) }
-            "경유지 추가" -> waypoint()
+            "목적지 음성 검색" -> voice(name, "\"서울역으로 가자\"처럼 목적지를 말하면 완료돼요 (말한 문장만 확인하고, 내비 검색은 실행하지 않아요)") { isDestination(it) }
+            "주유소·충전소 검색" -> voice(name, "\"가까운 충전소 찾아줘\"라고 말하면 완료돼요 (말한 문장만 확인하고, 내비 검색은 실행하지 않아요)") { isStationQuery(it) }
+            "경유지 추가" -> waypoint(name)
             else -> null
         }
 
@@ -93,27 +136,30 @@ class QuestEvents private constructor(
             val t = text.replace(" ", "")
             return t.contains("충전소") || t.contains("주유소")
         }
-        private fun voice(hint: String, ok: (String) -> Boolean): QuestEvents {
-            lateinit var q: QuestEvents
-            q = QuestEvents(hint) { ctx, ready, done -> q.listen(ctx, ready, done, ok) }
-            return q
-        }
-
-        private fun waypoint(): QuestEvents {
-            lateinit var q: QuestEvents
-            q = QuestEvents("내비에서 경유지를 추가하면 자동으로 완료돼요") { ctx, ready, done ->
-                val n = NaviHelper(ctx.applicationContext).also { q.navi = it }
-                n.initialize({
-                    n.addListener(object : NaviHelperEventListener {
-                        override fun onWaypointChanged(waypointChangedInfo: WaypointChangedInfo) {
-                            Log.d("YeonsuSignal", "경유지 변경: ${waypointChangedInfo.index} ${waypointChangedInfo.cmdType}")
-                            if (waypointChangedInfo.cmdType == WaypointCmdType.ADD) done("경유지 추가됨")
-                        }
-                    })
-                    ready("내비 연결됨")
-                }, { e -> Log.e("YeonsuSignal", "내비 연결 실패 $e") })
-            }
-            return q
+        private fun voice(name: String, hint: String, ok: (String) -> Boolean) =
+            QuestEvents(hint, name) { q, ctx, t, cb -> q.listen(ctx, t, cb, ok) }
+        private fun waypoint(name: String) = QuestEvents("내비에서 경유지를 추가하면 완료돼요", name) { q, ctx, t, cb ->
+            val n = NaviHelper(ctx.applicationContext)
+            q.navi = n
+            n.initialize({
+                if (!q.accept(t)) return@initialize
+                val l = object : NaviHelperEventListener {
+                    override fun onWaypointChanged(waypointChangedInfo: WaypointChangedInfo) {
+                        if (!q.accept(t)) return
+                        Log.d(TAG, "[$name] 경유지 변경: ${waypointChangedInfo.index} ${waypointChangedInfo.cmdType}")
+                        if (waypointChangedInfo.cmdType == WaypointCmdType.ADD) cb.onDone("경유지 추가됨")
+                    }
+                }
+                q.naviListener = l
+                n.addListener(l)
+                Log.i(TAG, "[$name] 내비 수신 시작 token=$t")
+                cb.onReady()
+            }, { e ->
+                if (!q.accept(t)) return@initialize
+                Log.e(TAG, "[$name] 내비 연결 실패 $e")
+                cb.onError("내비에 연결하지 못했어요. 내비 앱이 켜져 있는지 확인하고 '다시 시도'를 눌러 주세요.")
+                q.close("내비 연결 실패")
+            })
         }
     }
 }
