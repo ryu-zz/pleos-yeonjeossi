@@ -125,10 +125,17 @@ class QuestDoneActivity : FadeActivity() {
             if (img.width == 0 || img.height == 0) return@addOnLayoutChangeListener
             // 화면을 빈틈없이 채우는 배율(넘치는 부분은 가운데 기준으로 잘림)
             val iw = d.intrinsicWidth.toFloat(); val ih = d.intrinsicHeight.toFloat()
-            val s = maxOf(img.width / iw, img.height / ih)
-            val m = Matrix().apply { setScale(s, s); postTranslate((img.width - iw * s) / 2f, (img.height - ih * s) / 2f) }
-            img.imageMatrix = m
             val sx = iw / SRC_W; val sy = ih / SRC_H
+            // 좁은 창(분할 화면 1/3 등): 화면을 채우는 배율로 가운데를 자르면 오른쪽의 제목·설명·버튼이 잘린다.
+            // 그때는 글자·버튼 구역(원본 x CONTENT_L~CONTENT_R)이 창 폭 안에 들어오는 배율로 줄이고 그 구역을 왼쪽 여백에 맞춘다.
+            val cover = maxOf(img.width / iw, img.height / ih)
+            val narrow = img.width < img.height * 0.9f
+            val s = if (!narrow) cover else minOf(cover, img.width * 0.94f / ((CONTENT_R - CONTENT_L) * sx))
+            val tx = if (!narrow) (img.width - iw * s) / 2f else img.width * 0.03f - CONTENT_L * sx * s
+            val m = Matrix().apply { setScale(s, s); postTranslate(tx, (img.height - ih * s) / 2f) }
+            img.imageMatrix = m
+            // 좁은 창에서는 캐릭터가 왼쪽 가장자리에 조금만 걸쳐 보이므로 숨긴다
+            face.visibility = if (narrow) View.GONE else View.VISIBLE
             spots.forEach { (src, v) ->
                 val r = RectF(src.left * sx, src.top * sy, src.right * sx, src.bottom * sy)
                 m.mapRect(r)
@@ -210,6 +217,9 @@ class QuestDoneActivity : FadeActivity() {
         )
         /** 터치 영역 좌표의 기준 크기 (yeonsu_quest_done.png 원본 픽셀) */
         private const val SRC_W = 1490f
+        /** 글자·버튼이 있는 구역(원본 픽셀 x). 좁은 창에서 이 구역이 잘리지 않게 맞춘다. */
+        private const val CONTENT_L = 720f
+        private const val CONTENT_R = 1450f
         private const val SRC_H = 1055f // UI image/운전퀘스트완료_정렬수정.png
     }
 }

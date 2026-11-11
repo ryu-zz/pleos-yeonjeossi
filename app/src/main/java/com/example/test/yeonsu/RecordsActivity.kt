@@ -123,7 +123,7 @@ class RecordsActivity : ScreenActivity() {
                 if (badge != null) nameCol.addView(tv(badge, 16f, Color.parseColor(if (r.source == QuestStore.SOURCE_USER) "#5A6478" else "#2D7653")).apply {
                     background = rounded(Color.parseColor(if (r.source == QuestStore.SOURCE_USER) "#E6EAF0" else "#D9EEE1"), 14f); setPadding(dp(12f), dp(4f), dp(12f), dp(4f))
                 }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(6f) })
-                row.addView(nameCol, if (compact) LinearLayout.LayoutParams(-2, -2) else LinearLayout.LayoutParams(0, -2, 1f))
+                row.addView(nameCol, if (compact) LinearLayout.LayoutParams(-1, -2) else LinearLayout.LayoutParams(0, -2, 1f))
                 row.addView(tv(fmt.format(Date(r.at)), 18f, Color.parseColor("#758298")).apply { if (compact) setPadding(0, dp(6f), 0, 0) })
                 recordsBox.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12f) })
             }

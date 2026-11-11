@@ -118,6 +118,14 @@ class QuestListActivity : ScreenActivity() {
             root.addView(HorizontalScrollView(this).apply {
                 addView(catBar); isHorizontalScrollBarEnabled = false
                 restoreScroll(this, scrollKey, true)
+                // 좁은 창(가로 탭)에서 고른 카테고리가 화면 밖에 있으면 보이는 곳까지 옮긴다(크기를 바꾼 뒤에도)
+                val sv = this
+                post {
+                    val sel = items.getOrNull(QuestSession.category)?.first ?: return@post
+                    val pad = dp(16f)
+                    if (sel.right > sv.scrollX + sv.width) sv.scrollTo(sel.right - sv.width + pad, 0)
+                    else if (sel.left < sv.scrollX) sv.scrollTo(maxOf(0, sel.left - pad), 0)
+                }
             },
                 LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10f) })
             root.addView(right, LinearLayout.LayoutParams(-1, 0, 1f))
