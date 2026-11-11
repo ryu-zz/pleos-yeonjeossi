@@ -174,7 +174,8 @@ class QuestListActivity : ScreenActivity() {
         text.addView(tv(q.name, 28f, ScreenActivity.NAVY, true))
         text.addView(tv(q.desc, 18f, ScreenActivity.GRAY).apply { setPadding(0, dp(8f), 0, 0) })
         row.addView(text, LinearLayout.LayoutParams(0, -2, 1f))
-        row.addView(tv(statusLabel(st), 18f, statusColor(st), true).apply {
+        // 자동 판정 보류 중인 퀘스트는 "판정 보류"로 표시한다(뱃지 조건에서도 빠져 있다)
+        row.addView(tv(if (st != "done" && badgeExempt(q)) "판정 보류" else statusLabel(st), 18f, statusColor(st), true).apply {
             background = rounded(Color.WHITE, 24f); setPadding(dp(16f), dp(8f), dp(16f), dp(8f))
         }, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = dp(12f) })
         row.addView(tv("›", 44f, Color.parseColor("#4A5B7A")).apply { setPadding(dp(12f), 0, 0, 0) })

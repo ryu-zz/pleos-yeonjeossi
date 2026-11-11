@@ -178,7 +178,8 @@ class QuestDetailActivity : ScreenActivity() {
         }
 
         // 자동 판정 보류(신뢰할 수 있는 신호 없음): 사유를 보여주고 완료시키지 않는다
-        pendingReason?.let { r ->
+        pendingReason?.let { r0 ->
+            val r = r0 + "\n이 퀘스트는 카테고리 뱃지 조건에서 빼 두었어요."
             panel.addView(tv(r, 20f, Color.parseColor("#9A5B00"), true).apply {
                 background = rounded(Color.parseColor("#FFF1CC"), 16f); setPadding(dp(20f), dp(14f), dp(20f), dp(14f)); setLineSpacing(0f, 1.2f)
             }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(18f) })
