@@ -228,6 +228,7 @@ object QuestSession {
  */
 class QuestStore(private val prefs: SharedPreferences) {
     constructor(context: Context) : this(context.getSharedPreferences("yeonsu_quest", Context.MODE_PRIVATE))
+    init { QuestMigration.migrate(prefs) }  // 저장 데이터를 지금 목록에 맞게 한 번만 옮긴다(삭제 없음)
     /**
      * status: 저장된 상태(new/doing/done). 완료한 퀘스트를 다시 해도 done 으로 남는다.
      * running: 지금 수행 중인지(처음 수행 doing, 또는 완료한 퀘스트의 재수행). step 은 수행 중인 단계.
