@@ -111,7 +111,7 @@ class LoadingActivity : FadeActivity() {
 
     companion object {
         /** 로딩 화면 전체 시간(ms). 나타남 0.7초 + 보여줌 + 사라짐 0.7초. */
-        private const val SHOW_MS = 3000L
+        private const val SHOW_MS = 3010L
     }
 
     override fun onDestroy() {
