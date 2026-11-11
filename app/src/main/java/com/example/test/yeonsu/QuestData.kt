@@ -190,6 +190,8 @@ object QuestData {
     }
 }
 
+/** 뱃지 조건에서 빼는 퀘스트: 자동 판정을 보류 중이라 완료할 방법이 없는 퀘스트(예: 크루즈 켰다가 끄기). */
+fun badgeExempt(q: Quest): Boolean = q.id.startsWith("vehicle-") && QuestSignals.find(q.name)?.pendingReason != null
 /** 전기차 모드: 켜져 있을 때만 차량 퀘스트에 "전기차" 카테고리(맨 마지막)가 보인다. */
 object EvMode {
     private fun prefs(c: Context) = c.getSharedPreferences("yeonsu_quest", Context.MODE_PRIVATE)
@@ -228,7 +230,10 @@ object QuestSession {
  */
 class QuestStore(private val prefs: SharedPreferences) {
     constructor(context: Context) : this(context.getSharedPreferences("yeonsu_quest", Context.MODE_PRIVATE))
-    init { QuestMigration.migrate(prefs) }  // 저장 데이터를 지금 목록에 맞게 한 번만 옮긴다(삭제 없음)
+    init {
+        // 저장 데이터를 지금 목록에 맞게 한 번만 옮긴다(삭제 없음). 옮긴 뒤 바뀐 뱃지 조건으로 이미 채운 카테고리 뱃지를 준다.
+        if (QuestMigration.migrate(prefs) != null) grantEarnedBadges()
+    }
     /**
      * status: 저장된 상태(new/doing/done). 완료한 퀘스트를 다시 해도 done 으로 남는다.
      * running: 지금 수행 중인지(처음 수행 doing, 또는 완료한 퀘스트의 재수행). step 은 수행 중인 단계.
@@ -288,8 +293,19 @@ class QuestStore(private val prefs: SharedPreferences) {
 
     // ───── 뱃지: 한 카테고리의 퀘스트를 모두 완료하면 받는다 ─────
     private fun typeOf(q: Quest) = q.id.substringBefore("-")
-    fun categoryDone(type: String, c: Int): Boolean =
-        QuestData.names(type, c).indices.all { state(QuestData.quest(type, c, it)).status == "done" }
+    /** 카테고리의 뱃지 조건 퀘스트(자동 판정 보류 중인 퀘스트는 빼고)를 모두 완료했는지. */
+    fun categoryDone(type: String, c: Int): Boolean {
+        val required = QuestData.names(type, c).indices.filterNot { badgeExempt(QuestData.quest(type, c, it)) }
+        return required.isNotEmpty() && required.all { state(QuestData.quest(type, c, it)).status == "done" }
+    }
+    /** 이미 조건을 채운 카테고리인데 뱃지가 없으면 준다(뱃지 조건이 바뀐 뒤 한 번). 팝업은 띄우지 않는다. */
+    private fun grantEarnedBadges() {
+        val e = prefs.edit(); var any = false
+        QuestData.cats.forEach { (type, cats) -> cats.indices.forEach { c ->
+            if (!hasBadge(type, c) && categoryDone(type, c)) { e.putLong("badge:$type:$c", System.currentTimeMillis()); any = true }
+        } }
+        if (any) e.apply()
+    }
     fun hasBadge(type: String, c: Int): Boolean = prefs.contains("badge:$type:$c")
     /** 방금 완료한 퀘스트 때문에 카테고리가 모두 깨졌으면 뱃지를 주고 "새 뱃지"로 표시해 둔다. */
     private fun checkBadge(q: Quest) {
