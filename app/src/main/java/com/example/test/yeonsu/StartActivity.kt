@@ -22,7 +22,7 @@ class StartActivity : FadeActivity() {
 
     private val pieces = listOf(
         Piece(R.drawable.yeonsu_start_char, RectF(18f, 236f, 18f + 595f, 236f + 681f)),
-        Piece(R.drawable.yeonsu_start_logo, RectF(793f, 165f, 793f + 311f, 165f + 37f)),
+        Piece(R.drawable.yeonsu_start_logo, RectF(982.1f, 165f, 1104f, 165f + 37f)),  // 현대 로고는 빼고 핸들·연저씨만(오른쪽 끝 위치 유지)
         Piece(R.drawable.yeonsu_start_title, RectF(592f, 362f, 592f + 533f, 362f + 201f)),
         Piece(R.drawable.yeonsu_start_sub, RectF(695f, 611f, 695f + 260f, 611f + 60f)),
         Piece(R.drawable.yeonsu_start_btn, RectF(682f, 709f, 682f + 352f, 709f + 104f)),
