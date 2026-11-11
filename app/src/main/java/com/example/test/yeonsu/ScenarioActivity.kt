@@ -21,6 +21,8 @@ class ScenarioActivity : ScreenActivity() {
     override val parentScreen: Class<out Activity> = QuestListActivity::class.java
     private val store by lazy { QuestStore(this) }
     private var cut = 0
+    /** 완료 버튼 연속 탭 방지 */
+    private var finishing = false
     private var photoView: View? = null
     private var nextBtn: View? = null
     override fun helpHeadline() = "시나리오 화면이에요"
@@ -85,7 +87,9 @@ class ScenarioActivity : ScreenActivity() {
 
     private fun finishScenario(q: Quest) {
         if (QuestFlow.stage == QuestFlow.REPLAY) {
-            store.complete(q)
+            if (finishing) return
+            finishing = true
+            store.complete(q, source = QuestFlow.completeSource())
             Toast.makeText(this, "퀘스트를 완료했어요. 마이페이지에 기록됐어요.", Toast.LENGTH_SHORT).show()
             goTo(QuestListActivity::class.java)
         } else {
