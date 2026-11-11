@@ -60,9 +60,9 @@ object QuestData {
         ),
         // 내비·음성 (내 브랜치에서 가져옴): 음성 인식(SpeechToText)과 내비(NaviHelper) 신호로 자동 완료. 전기차는 맨 마지막이어야 해서 그 앞에 둔다.
         listOf(
-            Tutorial("목적지 음성 검색", "마이크 버튼을 누르고 목적지를 말해보세요.", "좋아요. 목적지를 찾았어요.", "부분 가능"),
+            Tutorial("목적지 음성 검색", "목적지를 말해보세요. 말한 문장만 확인하고 검색은 실행하지 않아요.", "좋아요. 목적지를 말했어요.", "부분 가능"),
             Tutorial("경유지 추가", "가는 길에 들를 장소를 추가해보세요.", "좋아요. 경유지를 추가했어요.", "확인 가능"),
-            Tutorial("주유소·충전소 검색", "가까운 충전소 찾아줘라고 말해보세요.", "좋아요. 가까운 충전소를 찾았어요.", "부분 가능"),
+            Tutorial("주유소·충전소 검색", "가까운 충전소 찾아줘라고 말해보세요. 말한 문장만 확인하고 검색은 실행하지 않아요.", "좋아요. 충전소를 찾는 말을 했어요.", "부분 가능"),
         ),
         listOf(
             Tutorial("충전구 열었다가 닫기", "충전구를 열었다가 닫아보세요.", "충전구를 열었다가 닫았어요.", "자동 판정 어려움", listOf("충전구 열기 버튼을 눌러보세요", "충전구를 닫아보세요")),
@@ -158,7 +158,7 @@ object QuestData {
         "크루즈 켰다가 끄기" to "막히지 않는 길에서 속도를 유지해줘요. 브레이크를 밟으면 바로 해제돼요!",
         "충전구 열었다가 닫기" to "충전기 가까이 세우고 버튼 한 번! 충전구 앞은 비워두기!",
         "충전 상태 확인" to "남은 %와 완료까지 걸리는 시간을 함께 보기!",
-        "목적지 음성 검색" to "마이크 버튼을 누르고 장소 이름만 또박또박! 운전 중엔 음성으로!",
+        "목적지 음성 검색" to "장소 이름만 또박또박! 운전 중엔 손 대신 음성으로!",
         "경유지 추가" to "목적지는 그대로 두고, 가는 길에 들를 곳만 끼워 넣어요!",
         "주유소·충전소 검색" to "'가까운 충전소 찾아줘'처럼 말하면 돼요. 잔량 20% 전에 미리 찾기!",
     )
@@ -185,7 +185,8 @@ object QuestData {
         }
         val d = dailyQuests[c][i]
         val steps = listOf("안내 내용 살펴보기", "필요한 동작 확인하기", "확인 내용 돌아보기")
-        val desc = "난이도 ${d.stars} · " + (if (d.manual) "직접 완료 누르기" else "자동 확인")
+        // 자동으로 확인하는 일상 퀘스트는 없다. 카테고리 맨 위 퀘스트만 내비 도착 정보로 목적지를 확인하고, 확정할 수 없으면 직접 확인한다.
+        val desc = "난이도 ${d.stars} · " + (if (i == 0 && flows.containsKey(c)) "내비 도착 확인 또는 직접 확인" else "직접 완료")
         return Quest("$type-$c-$i", d.name, c, steps, desc)
     }
 }
@@ -212,7 +213,17 @@ object QuestFlow {
     const val REPLAY = 4  // 시나리오 다시 보는 중
     var stage = INTRO
     var destName: String? = null
-    fun start() { stage = INTRO; destName = null }
+    /** 도착 판정 결과(UNCONFIRMED/UNKNOWN 이면 사용자 확인 단계, MISMATCH 면 다른 곳 도착 안내). null 이면 판정 전. */
+    var arrival: DailyArrival.Result? = null
+    var arrivedName: String? = null
+    /** 고른 목적지의 주소(내비 목적지 정보)와 도착 이벤트의 주소. 같은 이름의 다른 지점을 구분하는 데 쓴다. */
+    var destAddr: String? = null
+    var arrivedAddr: String? = null
+    /** 이번 수행 번호. 같은 수행의 완료는 시간이 지나 다시 와도 한 번만 기록한다. */
+    var runId: String? = null
+    fun start() { stage = INTRO; destName = null; destAddr = null; arrival = null; arrivedName = null; arrivedAddr = null; runId = java.util.UUID.randomUUID().toString() }
+    /** 기록에 남길 완료 방식: 내비 도착 정보로 목적지를 확인했으면 navi, 아니면 사용자 직접 확인. */
+    fun completeSource(): String = if (arrival == DailyArrival.Result.MATCHED) QuestStore.SOURCE_NAVI else QuestStore.SOURCE_USER
 }
 /** 화면 사이에서 "지금 어떤 종류/카테고리/퀘스트를 보고 있는지" 유지한다(HTML의 type, category, selected). */
 object QuestSession {
@@ -240,7 +251,11 @@ class QuestStore(private val prefs: SharedPreferences) {
      */
     class State(val status: String, val step: Int, val running: Boolean = status == "doing")
     /** verified=true: 차량 신호로 확인된 완료. false(또는 이전 기록): 버튼으로 완료한 기록. */
-    class Record(val id: String, val name: String, val at: Long, val verified: Boolean = false)
+    /**
+     * verified=true: 차량 신호(또는 음성·내비 이벤트)로 확인된 완료.
+     * source: 일상 퀘스트의 완료 방식. "navi"=내비 도착 정보로 목적지 확인, "user"=사용자가 직접 확인·완료, null=예전 기록·차량 퀘스트.
+     */
+    class Record(val id: String, val name: String, val at: Long, val verified: Boolean = false, val source: String? = null)
 
     // 키 규칙: p:<id> = 저장된 진행/완료 상태, r:<id> = 완료한 퀘스트를 다시 하는 중인 단계(임시), records = 완료 기록.
     // 재수행은 p:<id>(done)를 건드리지 않고 r:<id> 로만 표시하므로, 도중에 중단해도 완료 상태·기록·뱃지가 그대로 남는다.
@@ -266,12 +281,32 @@ class QuestStore(private val prefs: SharedPreferences) {
     }
 
     /** 단계 진행과 상관없이 완료 처리하고 기록을 남긴다. */
-    fun complete(q: Quest, verified: Boolean = false) {
-        prefs.edit().putString("p:" + q.id, "done|" + q.steps.size).remove("r:" + q.id).apply()
+    /**
+     * runId: 한 번의 수행을 가리키는 번호. 같은 퀘스트·같은 runId 기록이 이미 있으면 시간이 지났어도 다시 기록하지 않는다
+     * (늦게 다시 온 도착 이벤트 등). 새 수행(새 runId)은 정상적으로 새 기록을 남긴다.
+     */
+    fun complete(q: Quest, verified: Boolean = false, source: String? = null, nowMs: Long = System.currentTimeMillis(), runId: String? = null): Boolean {
         val arr = JSONArray(prefs.getString("records", "[]"))
-        arr.put(JSONObject().put("id", q.id).put("name", q.name).put("at", System.currentTimeMillis()).put("verified", verified))
+        if (runId != null && (0 until arr.length()).any { val o = arr.getJSONObject(it); o.optString("id") == q.id && o.optString("run") == runId }) return false
+        // 완료 버튼 연속 탭 등으로 같은 퀘스트가 잠깐 사이에 두 번 들어오면 두 번째는 버린다
+        if (arr.length() > 0) {
+            val last = arr.getJSONObject(arr.length() - 1)
+            if (last.optString("id") == q.id && nowMs - last.optLong("at") in 0 until DUPLICATE_MS) return false
+        }
+        prefs.edit().putString("p:" + q.id, "done|" + q.steps.size).remove("r:" + q.id).apply()
+        val o = JSONObject().put("id", q.id).put("name", q.name).put("at", nowMs).put("verified", verified)
+        if (source != null) o.put("source", source)
+        if (runId != null) o.put("run", runId)
+        arr.put(o)
         prefs.edit().putString("records", arr.toString()).apply()
         checkBadge(q)
+        return true
+    }
+    companion object {
+        /** 같은 퀘스트 완료가 이 시간(ms) 안에 다시 오면 중복으로 본다. */
+        const val DUPLICATE_MS = 3000L
+        const val SOURCE_NAVI = "navi"
+        const val SOURCE_USER = "user"
     }
     /** 다음 단계로 넘긴다. 마지막 단계면 완료 기록을 남기고 true. */
     fun advance(q: Quest, verified: Boolean = false): Boolean {
@@ -325,6 +360,6 @@ class QuestStore(private val prefs: SharedPreferences) {
     /** 최근 순. */
     fun records(): List<Record> {
         val arr = JSONArray(prefs.getString("records", "[]"))
-        return (0 until arr.length()).map { val o = arr.getJSONObject(it); Record(o.getString("id"), o.getString("name"), o.getLong("at"), o.optBoolean("verified", false)) }.reversed()
+        return (0 until arr.length()).map { val o = arr.getJSONObject(it); Record(o.getString("id"), o.getString("name"), o.getLong("at"), o.optBoolean("verified", false), o.optString("source").ifEmpty { null }) }.reversed()
     }
 }

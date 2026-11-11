@@ -65,6 +65,8 @@ abstract class ScreenActivity : FadeActivity() {
         root.addView(buildHeader(headerH), FrameLayout.LayoutParams(-1, headerH, Gravity.TOP))
         build(content, bw - sideL - sideR, bh - headerH)
         unclip(root)
+        // 내용 영역은 헤더 아래에서 잘라 낸다(스크롤한 내용이 헤더 위로 그려지지 않게). 좌우·아래 여백 안의 그림자는 그대로 보인다.
+        content.clipChildren = true
         QuestStore(this).takeNewBadge()?.let { (type, c) -> showBadge(type, c) }
     }
 

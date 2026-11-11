@@ -119,15 +119,16 @@ class RecordsActivity : ScreenActivity() {
                 }
                 val nameCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
                 nameCol.addView(tv("✓ " + r.name, 24f, ScreenActivity.NAVY, true))
-                if (r.verified) nameCol.addView(tv("차량 신호로 확인됨", 16f, Color.parseColor("#2D7653")).apply {
-                    background = rounded(Color.parseColor("#D9EEE1"), 14f); setPadding(dp(12f), dp(4f), dp(12f), dp(4f))
+                val badge = when { r.verified -> "차량 신호로 확인됨"; r.source == QuestStore.SOURCE_NAVI -> "내비 도착으로 확인됨"; r.source == QuestStore.SOURCE_USER -> "직접 확인"; else -> null }
+                if (badge != null) nameCol.addView(tv(badge, 16f, Color.parseColor(if (r.source == QuestStore.SOURCE_USER) "#5A6478" else "#2D7653")).apply {
+                    background = rounded(Color.parseColor(if (r.source == QuestStore.SOURCE_USER) "#E6EAF0" else "#D9EEE1"), 14f); setPadding(dp(12f), dp(4f), dp(12f), dp(4f))
                 }, LinearLayout.LayoutParams(-2, -2).apply { topMargin = dp(6f) })
-                row.addView(nameCol, if (compact) LinearLayout.LayoutParams(-2, -2) else LinearLayout.LayoutParams(0, -2, 1f))
+                row.addView(nameCol, if (compact) LinearLayout.LayoutParams(-1, -2) else LinearLayout.LayoutParams(0, -2, 1f))
                 row.addView(tv(fmt.format(Date(r.at)), 18f, Color.parseColor("#758298")).apply { if (compact) setPadding(0, dp(6f), 0, 0) })
                 recordsBox.addView(row, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12f) })
             }
         }
-        col.addView(tv("이 기기에 저장된 기록입니다. '차량 신호로 확인됨' 표시가 없는 기록은 버튼으로 완료한 기록이에요.", 16f, Color.parseColor("#758298")).apply { setPadding(0, dp(18f), 0, 0) })
+        col.addView(tv("이 기기에 저장된 기록입니다. '차량 신호로 확인됨'·'내비 도착으로 확인됨'은 자동으로 확인한 기록, '직접 확인'과 표시가 없는 기록은 버튼으로 완료한 기록이에요.", 16f, Color.parseColor("#758298")).apply { setPadding(0, dp(18f), 0, 0) })
 
         content.addView(ScrollView(this).apply { addView(col); isVerticalScrollBarEnabled = false },
             FrameLayout.LayoutParams(-1, -1).apply { setMargins(dp(40f), 0, dp(40f), dp(24f)) })
