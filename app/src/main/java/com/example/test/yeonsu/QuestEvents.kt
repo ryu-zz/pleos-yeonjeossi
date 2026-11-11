@@ -22,6 +22,8 @@ import android.util.Log
 class QuestEvents private constructor(
     val hint: String,
     private val name: String,
+    /** true 면 화면이 가려져도(onStop) 수신을 유지한다. 경유지는 내비 앱 화면에서 추가하므로 연저씨 화면이 가려진다. 녹음(STT)은 false. */
+    val keepWhileHidden: Boolean,
     private val start: (QuestEvents, Context, Int, Callbacks) -> Unit,
 ) {
     /** 화면이 받는 알림. 모두 메인 스레드가 아닐 수 있으니 화면에서 runOnUiThread 로 받는다. */
@@ -137,8 +139,8 @@ class QuestEvents private constructor(
             return t.contains("충전소") || t.contains("주유소")
         }
         private fun voice(name: String, hint: String, ok: (String) -> Boolean) =
-            QuestEvents(hint, name) { q, ctx, t, cb -> q.listen(ctx, t, cb, ok) }
-        private fun waypoint(name: String) = QuestEvents("내비에서 경유지를 추가하면 완료돼요", name) { q, ctx, t, cb ->
+            QuestEvents(hint, name, keepWhileHidden = false) { q, ctx, t, cb -> q.listen(ctx, t, cb, ok) }
+        private fun waypoint(name: String) = QuestEvents("내비에서 경유지를 추가하면 완료돼요 (내비 화면으로 가도 계속 기다려요)", name, keepWhileHidden = true) { q, ctx, t, cb ->
             val n = NaviHelper(ctx.applicationContext)
             q.navi = n
             n.initialize({

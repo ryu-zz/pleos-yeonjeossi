@@ -85,17 +85,20 @@ class QuestDetailActivity : ScreenActivity() {
     /** 음성·내비 수신 시작: 화면이 보이고, 수행 중이고, 아직 완료 전일 때만. 늦게 온 이전 결과는 EventGate 가 버린다. */
     private fun openEvents() {
         val e = events ?: return
-        if (success || !visible || !store.state(quest).running) return
+        if (success || !store.state(quest).running) return
+        if (!visible) return
+        if (e.isOpen && e.keepWhileHidden) return   // 가려진 동안 유지하던 수신을 그대로 쓴다
         eventsState = "connecting"; eventsError = ""
         e.open(this, object : QuestEvents.Callbacks {
             override fun onReady() = runOnUiThread { if (e.isOpen) { eventsState = "listening"; refresh() } }
             override fun onDone(why: String) = runOnUiThread {
                 // 중단·화면 이탈·완료 뒤에 온 사건은 무시한다(이 화면을 연 퀘스트에만 반영)
-                if (!e.isOpen || success || !visible || !store.state(quest).running) return@runOnUiThread
+                if (!e.isOpen || success || (!visible && !e.keepWhileHidden) || !store.state(quest).running) return@runOnUiThread
                 android.util.Log.d("YeonsuSignal", "${quest.name}: $why 완료")
                 e.close("완료")
                 while (store.state(quest).running) { if (store.advance(quest, verified = true)) { success = true; break } }
-                if (success) goTo(QuestDoneActivity::class.java) else refresh()
+                // 화면이 가려진 동안 완료되면(경유지) 돌아왔을 때 완료 화면으로 보낸다
+                if (success) { if (visible) goTo(QuestDoneActivity::class.java) } else refresh()
             }
             override fun onError(message: String) = runOnUiThread {
                 eventsState = "error"; eventsError = message; refresh()
@@ -110,13 +113,14 @@ class QuestDetailActivity : ScreenActivity() {
     override fun onStart() {
         super.onStart()
         visible = true
+        if (success && events?.keepWhileHidden == true) { goTo(QuestDoneActivity::class.java); return }
         openSession()
         openEvents()
     }
     override fun onStop() {
         visible = false
         closeSession()   // 홈 이동 등으로 화면이 안 보이면 조회·판정을 멈춘다
-        closeEvents("화면 이탈")   // 녹음·내비 수신도 멈춘다
+        if (events?.keepWhileHidden != true) closeEvents("화면 이탈")   // 녹음은 멈춘다(경유지 수신은 내비 화면에서 추가하므로 유지)
         super.onStop()
     }
     override fun onDestroy() {
