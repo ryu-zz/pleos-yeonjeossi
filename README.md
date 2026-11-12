@@ -13,7 +13,9 @@
 
 <img src="docs/screenshots/01-start.png" width="860" alt="연저씨 시작 화면">
 
-**[▶ 구현 영상 보기](docs/demo/yeonjeossi-demo.mp4)**
+<a href="docs/demo/yeonjeossi-demo.mp4"><img src="docs/demo/yeonjeossi-demo-preview.gif" width="420" alt="연저씨 구현 영상 미리보기"></a>
+
+**[▶ 전체 구현 영상 보기 (약 1분 30초)](docs/demo/yeonjeossi-demo.mp4)**
 
 </div>
 
