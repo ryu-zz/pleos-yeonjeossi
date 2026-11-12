@@ -4,7 +4,11 @@
 
 ### "너의 연수 아저씨" - 초보 운전자를 위한 차량 조작 퀘스트 앱
 
-현대 Pleos Connect 차량용 앱 개발 공모전 출품작
+현대 Pleos Connect 차량용 앱 개발 공모전 출품작 · 팀 **TETORA**
+
+**앱 이름:** 연저씨 · **한 줄 소개:** 차량 조작을 퀘스트로 익히고, 차량 신호로 제대로 했는지 확인해 주는 운전 연수 앱
+
+**APK:** [`apk/TETORA_연저씨_release.apk`](apk/TETORA_연저씨_release.apk)
 
 ![Platform](https://img.shields.io/badge/Platform-Pleos%20Connect-14204A)
 ![Android](https://img.shields.io/badge/Android-minSdk%2028-3DDC84?logo=android&logoColor=white)
@@ -198,11 +202,41 @@ Pleos Connect 에뮬레이터에서 직접 캡처한 화면입니다.
 
 ##  실행 방법
 
+### 방법 1. APK로 설치 (가장 빠름)
+
+APK 파일은 [`apk/TETORA_연저씨_release.apk`](apk/TETORA_연저씨_release.apk)에 있습니다. Pleos Connect 에뮬레이터를 켠 뒤 터미널에서 설치합니다.
+
+```
+adb install --user 10 apk/TETORA_연저씨_release.apk
+```
+
+설치 후 에뮬레이터 홈에서 "연저씨" 앱을 열면 로딩 후 시작 화면이 뜹니다. 앱은 에뮬레이터의 `운전자` 사용자 계정에서 실행됩니다. APK는 이 저장소에서 새로 만든 키로 서명한 release 버전입니다.
+
+### 방법 2. 소스에서 빌드
+
 1. Android Studio에서 이 폴더를 열고 **Sync Project with Gradle Files**를 실행합니다. (`local.properties`는 자동 생성됩니다.)
-2. 실행 기기를 **Pleos Connect 에뮬레이터**로 선택합니다. (AVD 이름 예: `Pleos_Connect_v2.1.0`)
+2. 실행 기기를 **Pleos Connect 에뮬레이터**로 선택합니다.
 3. ▶ Run을 누르면 로딩 후 연저씨 시작 화면이 뜹니다.
 
-앱은 에뮬레이터의 `운전자` 사용자 계정에서 실행됩니다. 요구 환경은 Android SDK API 34 이상, minSdk 28, Kotlin입니다.
+### 테스트 환경
+
+| 항목 | 내용 |
+|---|---|
+| 에뮬레이터 | Pleos Connect 에뮬레이터 v2.1.0 (AVD 이름 `Pleos_Connect_v2.1.0`) |
+| 시스템 이미지 | Android 14 (API 34), Automotive, arm64-v8a |
+| 화면 규격 | 2560 × 1440 (가로형), 밀도 160dpi |
+| 앱 설정 | minSdk 28, targetSdk 37, Kotlin |
+| 필요한 설정 | Pleos SDK Maven 저장소는 `settings.gradle.kts`에 등록되어 있고, 차량 권한은 `AndroidManifest.xml`에 있습니다. 별도 키나 계정 설정은 필요 없습니다. |
+
+### 차량 신호로 퀘스트 확인해 보기
+
+차량 퀘스트는 차량 신호가 바뀌어야 완료됩니다. 에뮬레이터에서는 Pleos 가상 콘솔로 신호를 바꿀 수 있습니다.
+
+```
+adb forward tcp:8088 tcp:8088
+```
+
+그다음 PC 브라우저에서 `http://127.0.0.1:8088/` 를 열어 문, 와이퍼, 조명, 공조, 창문 같은 값을 바꾸면 앱이 신호를 읽어 퀘스트 단계를 넘깁니다.
 
 ---
 
