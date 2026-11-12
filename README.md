@@ -13,6 +13,8 @@
 
 <img src="docs/screenshots/01-start.png" width="860" alt="연저씨 시작 화면">
 
+**[▶ 구현 영상 보기](docs/demo/yeonjeossi-demo.mp4)**
+
 </div>
 
 ---
